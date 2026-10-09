@@ -1,0 +1,132 @@
+// =============================================================================
+// BẢNG 1: customer – Khách hàng
+// =============================================================================
+Table customer [headercolor: #1565C0] {
+  customer_id bigserial [pk, note: 'Khóa chính nhân tạo (BIGSERIAL)']
+  full_name varchar(120) [not null, note: 'Họ tên khách']
+  phone varchar(20) [unique, not null, note: 'QT-01, QT-02: chuẩn hóa 10 số bắt đầu 0']
+  email varchar(120) [note: 'NULL được']
+  address varchar(255) [note: 'NULL được']
+  segment varchar(20) [note: 'VIP / THUONG_XUYEN / MOI / NGU_DONG']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'FR1, US1 – Thông tin khách khi phân công. SĐT hiển thị che dạng 090****567 cho KTV (QT-15).'
+}
+
+// =============================================================================
+// BẢNG 2: device – Thiết bị của khách
+// =============================================================================
+Table device [headercolor: #EF6C00] {
+  device_id bigserial [pk]
+  customer_id bigint [not null, ref: > customer.customer_id, note: 'FK → customer (RESTRICT)']
+  serial_no varchar(50) [unique, not null, note: 'QT-03: serial_no hoặc IMEI duy nhất']
+  product_name varchar(100) [note: 'NULL được']
+  purchase_date date [note: 'NULL được (nhiều khách không nhớ)']
+  warranty_months smallint [not null, default: 12, note: 'QT-05: dùng để kiểm tra còn bảo hành']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'QT-03: 1 thiết bị thuộc 1 khách tại 1 thời điểm. Mỗi thiết bị có thể có 0..N phiếu bảo hành.'
+}
+
+// =============================================================================
+// BẢNG 3: service_center – Trung tâm bảo hành
+// =============================================================================
+Table service_center [headercolor: #2E7D32] {
+  center_id bigserial [pk]
+  center_name varchar(100) [not null]
+  address varchar(255) [not null]
+  phone varchar(20) [note: 'NULL được']
+  city varchar(50) [not null, note: 'TP.HCM / Can Tho / Ha Noi']
+  is_active boolean [not null, default: true, note: 'QT-13: soft delete']
+
+  Note: 'QT-08: KTV chỉ nhận phiếu cùng trung tâm. Mekong có 6 TT (3 HCM + 2 Cần Thơ + 1 HN).'
+}
+
+// =============================================================================
+// BẢNG 4: issue_category – Nhóm sự cố (danh mục)
+// =============================================================================
+Table issue_category [headercolor: #7B1FA2] {
+  category_id serial [pk]
+  category_name varchar(60) [unique, not null, note: 'MAN_HINH / PIN / SAC / PHAN_MEM / NUOC_VAO / KHAC']
+  default_priority varchar(10) [not null, note: 'CAO / TRUNG_BINH / THAP']
+  is_active boolean [not null, default: true]
+
+  Note: 'Danh mục nhóm sự cố – dùng để phân loại phiếu. QT-08 dùng kèm với proficiency của KTV.'
+}
+
+// =============================================================================
+// BẢNG 5: technician – Kỹ thuật viên (đã gộp proficiency vào)
+// =============================================================================
+Table technician [headercolor: #00838F] {
+  technician_id bigserial [pk]
+  employee_id varchar(20) [unique, not null, note: 'Mã nhân viên']
+  full_name varchar(120) [not null]
+  center_id bigint [not null, ref: > service_center.center_id, note: 'QT-08: KTV thuộc 1 TT cụ thể']
+  level varchar(10) [not null, note: 'SO_CAP / TRUNG_CAP / CAO_CAP']
+  proficiency smallint [not null, note: 'CHECK (1 ≤ proficiency ≤ 5). QT-08: yêu cầu ≥ 3 khi nhận phiếu']
+  is_active boolean [not null, default: true, note: 'QT-13: soft delete']
+  created_at timestamptz [not null, default: `now()`]
+
+  Note: 'FR2, FR5 – Nhân sự sửa chữa. Mekong có 38 KTV ở 6 TT. Gộp từ bảng technician_skill cũ.'
+}
+
+// =============================================================================
+// BẢNG 6: ticket – Phiếu bảo hành (BẢNG TRUNG TÂM – gộp log + lịch hẹn)
+// =============================================================================
+Table ticket [headercolor: #C62828] {
+  ticket_id bigserial [pk]
+  ticket_code varchar(20) [unique, not null, note: 'Dạng BH-000123/2026']
+
+  // Khóa ngoại
+  customer_id bigint [not null, ref: > customer.customer_id, note: 'FK NOT NULL']
+  device_id bigint [not null, ref: > device.device_id, note: 'FK NOT NULL – QT-03']
+  center_id bigint [not null, ref: > service_center.center_id, note: 'FK NOT NULL – QT-14']
+  technician_id bigint [ref: > technician.technician_id, note: 'QT-07: NULL khi chưa phân công']
+  category_id int [ref: > issue_category.category_id, note: 'NULL nếu chưa phân loại']
+
+  // Nghiệp vụ
+  issue_desc text [not null, note: 'CHECK (length ≥ 10)']
+  priority varchar(12) [not null, note: 'CHECK IN (CAO, TRUNG_BINH, THAP) – QT-04']
+  status varchar(20) [not null, default: 'MOI', note: 'CHECK IN 7 trạng thái – QT-06 vòng đời']
+
+  // Thời gian
+  received_at timestamptz [not null, default: `now()`]
+  due_date timestamptz [not null, note: 'QT-04: sinh tự động từ priority + received_at']
+  closed_at timestamptz [note: 'NULL được']
+
+  // LỊCH SỬ TRẠNG THÁI (gộp từ bảng ticket_status_log cũ – QT-06)
+  status_history jsonb [not null, default: `'[]'`, note: 'Mảng JSON các lần chuyển trạng thái {from, to, at, by, note}']
+
+  // LỊCH HẸN (gộp từ bảng appointment cũ – FR4/US4)
+  appointment_at timestamptz [note: 'NULL nếu chưa đặt lịch hẹn. 1 phiếu = 1 lịch hẹn (BT1 prototype)']
+  appointment_status varchar(20) [note: 'CHECK IN (SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW)']
+
+  Note: 'Bảng trung tâm của luồng L4. Tất cả FK đều dẫn về đây. status_history JSONB thay cho bảng log.'
+}
+
+// =============================================================================
+// VIEW (tham khảo, không hiển thị trong ERD nhưng tạo trong schema.sql)
+// v_ticket_status_log – "bẻ" JSONB thành dạng bảng phẳng để code dễ truy vấn
+// =============================================================================
+// Table v_ticket_status_log {
+//   log_id bigserial [pk]
+//   ticket_id bigint [not null]
+//   from_status varchar(20)
+//   to_status varchar(20) [not null]
+//   changed_at timestamptz [not null]
+//   changed_by bigint [not null]
+//   note text
+// }
+
+// =============================================================================
+// CHÚ THÍCH KÝ PHÁP CROW'S FOOT
+// =============================================================================
+// ||--o{ : Một (bắt buộc) — Nhiều (tùy chọn)        ← Quan hệ chính
+// ||--||  : Một — Một (bắt buộc cả hai)              ← Ít dùng
+// }o--o{  : Nhiều — Nhiều                            ← Cần bảng trung gian
+// -||--|{ : Bắt buộc cả hai phía                    ← Ít gặp
+//
+// Trong DBML, ký hiệu được dịch tự động:
+//   > customer.customer_id   = nhiều → một
+//   < customer.customer_id   = một → nhiều
+// =============================================================================
