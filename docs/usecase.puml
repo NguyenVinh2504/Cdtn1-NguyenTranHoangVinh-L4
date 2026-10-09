@@ -1,0 +1,129 @@
+@startuml
+' Cấu hình font tiếng Việt
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 12
+skinparam packageStyle rectangle
+left to right direction
+
+' ==========================================
+' ACTORS - Nằm NGOÀI ranh giới hệ thống
+' ==========================================
+actor "Quản lý trung tâm" as QLTT <<Actor chính>>
+actor "Kỹ thuật viên" as KTV <<Actor chính>>
+actor "Hệ thống nhắc hạn\n(Thời gian)" as HTNH <<Actor hệ thống>>
+
+' ==========================================
+' RANH GIỚI HỆ THỐNG - Boundary
+' ==========================================
+rectangle "Hệ thống Smart CRM: Phân công kỹ thuật viên & Lịch hẹn (Luồng L4)" {
+    
+    ' -----------------------------------------
+    ' USE CASES - Tên theo chuẩn: ĐỘNG TỪ + ĐỐI TƯỢNG
+    ' -----------------------------------------
+    
+    ' UC1: Xem phiếu chờ phân công - MUST
+    usecase "UC1: Xem danh sách phiếu\nchờ phân công" as UC1
+    
+    ' UC2: Phân công KTV cho phiếu - MUST (trọng tâm)
+    usecase "UC2: Phân công kỹ thuật viên\ncho phiếu bảo hành" as UC2
+    
+    ' UC3: Xem phiếu theo hạn SLA - MUST (trọng tâm)
+    usecase "UC3: Xem danh sách phiếu\nđược gán theo hạn SLA" as UC3
+    
+    ' UC4: Đặt lịch hẹn - SHOULD
+    usecase "UC4: Đặt lịch hẹn\ngiao - nhận máy" as UC4
+    
+    ' UC5: Xem tải công việc - SHOULD
+    usecase "UC5: Giám sát tải công việc\nkỹ thuật viên" as UC5
+    
+    ' UC6: Cập nhật trạng thái phiếu - SHOULD
+    usecase "UC6: Cập nhật tiến độ\nvà trạng thái phiếu" as UC6
+    
+    ' UC7: Điều chuyển KTV - COULD
+    usecase "UC7: Điều chuyển phiếu\nsang kỹ thuật viên khác" as UC7
+    
+    ' UC8: Xem lịch hẹn cá nhân - COULD
+    usecase "UC8: Xem lịch hẹn\ncá nhân trong ngày" as UC8
+    
+    ' UC9: Kiểm tra trùng lịch - <<include>>
+    usecase "UC9: Kiểm tra xung đột\ntrùng lịch hẹn" as UC9
+    
+    ' -----------------------------------------
+    ' QUAN HỆ INCLUDE / EXTEND
+    ' -----------------------------------------
+    
+    ' UC4 <<include>> UC9: Đặt lịch hẹn BẮT BUỘC gọi kiểm tra trùng
+    UC4 .> UC9 : <<include>>
+    
+    ' UC7 <<extend>> UC2: Điều chuyển là nhánh MỞ RỘNG của phân công
+    UC7 .> UC2 : <<extend>>
+    
+    ' UC2 <<include>> UC1: Xem danh sách trước khi phân công (tùy chọn, bước 1 của luồng chính)
+    UC2 .> UC1 : <<include>>
+}
+
+' ==========================================
+' LIÊN KẾT ACTOR VỚI USE CASES
+' ==========================================
+
+' Quản lý trung tâm - các use case của QLTT
+QLTT -- UC1
+QLTT -- UC2
+QLTT -- UC4
+QLTT -- UC5
+QLTT -- UC7
+
+' Kỹ thuật viên - các use case của KTV
+KTV -- UC3
+KTV -- UC6
+KTV -- UC8
+
+' Hệ thống nhắc hạn - actor phụ
+HTNH -- UC3
+
+' ==========================================
+' GHI CHÚ NGOÀI SƠ ĐỒ
+' ==========================================
+note right of UC2
+  **MoSCoW:**
+  • UC1, UC2, UC3 = MUST
+  • UC4, UC5, UC6 = SHOULD
+  • UC7, UC8 = COULD
+end note
+
+note top of UC4
+  **<<include>>:**
+  UC4 luôn gọi UC9
+  (kiểm tra trùng lịch hẹn
+  là bước bắt buộc)
+end note
+
+note top of UC7
+  **<<extend>>:**
+  UC7 chỉ xảy ra khi cần
+  điều chuyển KTV khác
+  (có lý do bắt buộc)
+end note
+
+note bottom of QLTT
+  **Quản lý trung tâm:**
+  • Xem phiếu chờ phân công
+  • Phân công KTV hợp lệ (QT-08)
+  • Đặt lịch hẹn
+  • Giám sát tải công việc
+  • Điều chuyển KTV
+end note
+
+note bottom of KTV
+  **Kỹ thuật viên:**
+  • Xem phiếu được gán (theo SLA)
+  • Cập nhật trạng thái phiếu
+  • Xem lịch hẹn cá nhân
+end note
+
+note bottom of HTNH
+  **Hệ thống nhắc hạn:**
+  • Gửi cảnh báo phiếu < 4h
+end note
+
+@enduml
