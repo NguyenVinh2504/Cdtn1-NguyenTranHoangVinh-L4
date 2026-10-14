@@ -1,0 +1,124 @@
+// =============================================================================
+// Prisma Schema: Mekong Mobile Smart CRM - Luồng L4
+// 6 Bảng chuẩn 3NF (gộp JSONB status_history & proficiency vào bảng chính)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// BẢNG 1: customer – Khách hàng
+model Customer {
+  customerId BigInt   @id @default(autoincrement()) @map("customer_id")
+  fullName   String   @map("full_name") @db.VarChar(120)
+  phone      String   @unique @db.VarChar(20)
+  email      String?  @db.VarChar(120)
+  address    String?  @db.VarChar(255)
+  segment    String?  @db.VarChar(20) // VIP, THUONG_XUYEN, MOI, NGU_DONG
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  devices Device[]
+  tickets Ticket[]
+
+  @@map("customer")
+}
+
+// BẢNG 2: device – Thiết bị của khách
+model Device {
+  deviceId       BigInt    @id @default(autoincrement()) @map("device_id")
+  customerId     BigInt    @map("customer_id")
+  serialNo       String    @unique @map("serial_no") @db.VarChar(50)
+  productName    String?   @map("product_name") @db.VarChar(100)
+  purchaseDate   DateTime? @map("purchase_date") @db.Date
+  warrantyMonths Int       @default(12) @map("warranty_months") @db.SmallInt
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  customer Customer @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  tickets  Ticket[]
+
+  @@map("device")
+}
+
+// BẢNG 3: service_center – Trung tâm bảo hành
+model ServiceCenter {
+  centerId   BigInt  @id @default(autoincrement()) @map("center_id")
+  centerName String  @map("center_name") @db.VarChar(100)
+  address    String  @db.VarChar(255)
+  phone      String? @db.VarChar(20)
+  city       String  @db.VarChar(50)
+  isActive   Boolean @default(true) @map("is_active")
+
+  technicians Technician[]
+  tickets     Ticket[]
+
+  @@map("service_center")
+}
+
+// BẢNG 4: issue_category – Danh mục nhóm sự cố
+model IssueCategory {
+  categoryId      Int     @id @default(autoincrement()) @map("category_id")
+  categoryName    String  @unique @map("category_name") @db.VarChar(60) // MAN_HINH, PIN, SAC, PHAN_MEM, NUOC_VAO, KHAC
+  defaultPriority String  @map("default_priority") @db.VarChar(10) // CAO, TRUNG_BINH, THAP
+  isActive        Boolean @default(true) @map("is_active")
+
+  tickets Ticket[]
+
+  @@map("issue_category")
+}
+
+// BẢNG 5: technician – Kỹ thuật viên (đã gộp proficiency)
+model Technician {
+  technicianId BigInt   @id @default(autoincrement()) @map("technician_id")
+  employeeId   String   @unique @map("employee_id") @db.VarChar(20)
+  fullName     String   @map("full_name") @db.VarChar(120)
+  centerId     BigInt   @map("center_id")
+  level        String   @db.VarChar(10) // SO_CAP, TRUNG_CAP, CAO_CAP
+  proficiency  Int      @map("proficiency") @db.SmallInt // 1 - 5, QT-08: >= 3
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  serviceCenter ServiceCenter @relation(fields: [centerId], references: [centerId], onDelete: Restrict)
+  tickets       Ticket[]
+
+  @@map("technician")
+}
+
+// BẢNG 6: ticket – Phiếu bảo hành (Bảng trung tâm luồng L4, gộp status_history JSONB và appointment)
+model Ticket {
+  ticketId     BigInt    @id @default(autoincrement()) @map("ticket_id")
+  ticketCode   String    @unique @map("ticket_code") @db.VarChar(20)
+  customerId   BigInt    @map("customer_id")
+  deviceId     BigInt    @map("device_id")
+  centerId     BigInt    @map("center_id")
+  technicianId BigInt?   @map("technician_id")
+  categoryId   Int?      @map("category_id")
+  issueDesc    String    @map("issue_desc") @db.Text
+  priority     String    @db.VarChar(12) // CAO, TRUNG_BINH, THAP
+  status       String    @default("MOI") @db.VarChar(20) // MOI, DA_PHAN_CONG, DANG_XU_LY, CHO_LINH_KIEN, HOAN_TAT, DA_DONG, DA_HUY
+  receivedAt   DateTime  @default(now()) @map("received_at") @db.Timestamptz
+  dueDate      DateTime  @map("due_date") @db.Timestamptz
+  closedAt     DateTime? @map("closed_at") @db.Timestamptz
+
+  // LỊCH SỬ CHUYỂN TRẠNG THÁI (QT-06: Mảng JSONB {from, to, at, by, note})
+  statusHistory Json @default("[]") @map("status_history")
+
+  // LỊCH HẸN GIAO NHẬN (FR4: Gộp từ appointment)
+  appointmentAt     DateTime? @map("appointment_at") @db.Timestamptz
+  appointmentStatus String?   @map("appointment_status") @db.VarChar(20) // SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
+
+  customer      Customer       @relation(fields: [customerId], references: [customerId], onDelete: Restrict)
+  device        Device         @relation(fields: [deviceId], references: [deviceId], onDelete: Restrict)
+  serviceCenter ServiceCenter  @relation(fields: [centerId], references: [centerId], onDelete: Restrict)
+  technician    Technician?    @relation(fields: [technicianId], references: [technicianId], onDelete: SetNull)
+  category      IssueCategory? @relation(fields: [categoryId], references: [categoryId], onDelete: SetNull)
+
+  @@index([status, centerId, receivedAt(sort: Desc)], map: "idx_ticket_status_center_received")
+  @@index([technicianId, dueDate(sort: Asc)], map: "idx_ticket_tech_due_date")
+  @@map("ticket")
+}
+

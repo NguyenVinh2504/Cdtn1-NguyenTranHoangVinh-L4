@@ -1,0 +1,53 @@
+{
+  "name": "mekong-mobile-crm-l4",
+  "version": "0.2.0",
+  "description": "Smart CRM Mekong Mobile - Luồng L4: Phân công kỹ thuật viên và lịch hẹn",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "server": "node src/server.js",
+    "client": "npm --prefix frontend run dev",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "db:setup": "prisma db push && node prisma/seed.js"
+  },
+  "keywords": [
+    "crm",
+    "warranty",
+    "technician-assignment",
+    "prisma",
+    "express",
+    "postgresql",
+    "react"
+  ],
+  "author": "Nguyen Tran Hoang Vinh - 2374802010562",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.7",
+    "prisma": "^5.22.0",
+    "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "verbose": true
+  }
+}
+

@@ -66,7 +66,7 @@ CREATE INDEX idx_device_serial   ON device(serial_no);  -- Tra cứu nhanh theo 
 -- =============================================================================
 -- BẢNG 4: issue_category – Nhóm sự cố (danh mục)
 -- Nguồn: SRS mục 1.4, Case study mục 8
--- Phục vụ: FR2, US2 (QT-08: KTV đủ proficiency theo nhóm sự cố)
+-- Phục vụ: FR2, US2 (Phân loại sự cố, tính SLA mặc định QT-04)
 -- =============================================================================
 CREATE TABLE issue_category (
     category_id       SERIAL        PRIMARY KEY,
