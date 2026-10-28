@@ -1,5 +1,6 @@
 const ticketRoutes = require('../src/routes/ticket.routes');
 const { errorHandler } = require('../src/middlewares/errorHandler.middleware');
+const { phoneMasker } = require('../src/middlewares/phoneMasker.middleware');
 const { AppError } = require('../src/errors/AppError');
 
 describe('TicketRoutes - Kiểm thử tầng HTTP & Middleware ánh xạ mã lỗi', () => {
@@ -148,6 +149,30 @@ describe('TicketRoutes - Kiểm thử tầng HTTP & Middleware ánh xạ mã l�
     expect(res.statusCode).toBe(200);
     expect(res.jsonData.success).toBe(true);
     expect(mockTicketService.updateTicket).toHaveBeenCalledWith('10', expect.any(Object));
+  });
+
+  test('RT-8: phoneMasker che số điện thoại cho KTV nhưng giữ nguyên kiểu Date', () => {
+    const receivedAt = new Date('2026-10-28T14:43:26.024Z');
+    const rawData = {
+      ticketId: 1,
+      receivedAt,
+      customer: {
+        phone: '0901234567',
+        createdAt: new Date('2026-10-28T10:00:00.000Z')
+      }
+    };
+
+    const { req, res } = mockRequestResponse({
+      headers: { 'x-user-role': 'TECHNICIAN' }
+    });
+
+    phoneMasker(req, res, () => {});
+    res.json(rawData);
+
+    expect(res.jsonData.customer.phone).toBe('090****567');
+    expect(res.jsonData.receivedAt).toBeInstanceOf(Date);
+    expect(res.jsonData.receivedAt.toISOString()).toBe('2026-10-28T14:43:26.024Z');
+    expect(res.jsonData.customer.createdAt).toBeInstanceOf(Date);
   });
 });
 

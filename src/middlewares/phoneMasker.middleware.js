@@ -14,6 +14,7 @@ function maskPhone(phone) {
 
 function maskPhonesInObject(obj) {
   if (!obj || typeof obj !== 'object') return obj;
+  if (obj instanceof Date || typeof obj.toISOString === 'function') return obj;
 
   if (Array.isArray(obj)) {
     return obj.map(item => maskPhonesInObject(item));
