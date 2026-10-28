@@ -6,7 +6,7 @@
 - **MSSV:** 2374802010562
 - **Track chuyên ngành:** Kỹ thuật phần mềm (SE)
 - **Học phần:** Chuyên đề tốt nghiệp 1 (HK261, 2026–2027) — Khoa CNTT, Đại học Văn Lang
-- **Tiến độ hiện tại:** Hoàn tất Giai đoạn 2 tới **Buổi 10** (Module cốt lõi, Module mở rộng & Giao diện Sprint 2)
+- **Tiến độ hiện tại:** Hoàn tất Giai đoạn 2 — **Buổi 12** (Nghiệm thu toàn bộ Module cốt lõi và Release `v0.2`)
 - **Phiên bản release:** `v0.2` (Tag: `v0.2`)
 
 ---
@@ -162,7 +162,7 @@ Hệ thống có sẵn nút **"Đổi vai trò"** trên thanh tiêu đề (Navba
 ## 8. Cấu trúc thư mục
 
 ```
-github_se_nop/
+Cdtn1-NguyenTranHoangVinh-L4/
 ├── docs/                             # Toàn bộ tài liệu đặc tả & thiết kế
 │   ├── srs.md                        # SRS 6 mục chuẩn ISO/IEC/IEEE 29148 (đã đồng bộ JSONB & proficiency)
 │   ├── usecase_spec.md               # Đặc tả chi tiết Use Case UC2, UC6, UC7
@@ -203,7 +203,7 @@ github_se_nop/
 
 ---
 
-## 9. Checklist tiến độ (Đạt tiêu chuẩn Buổi 10)
+## 9. Checklist tiến độ (Nghiệm thu Buổi 12 — Release v0.2)
 
 - [x] Khắc phục toàn bộ mâu thuẫn dữ liệu giữa SRS, UC, ERD và ghi nhận vào `docs/thay-doi-thiet-ke.md` (Buổi 8).
 - [x] Cập nhật bảng khai báo sử dụng công cụ AI đủ 4 cột (`docs/ai-disclosure.md`).

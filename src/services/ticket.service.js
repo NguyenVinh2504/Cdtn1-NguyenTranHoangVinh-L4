@@ -7,7 +7,7 @@ const SLA_HOURS = {
   THAP: 120
 };
 
-// Giới hạn số phiếu mở tối đa cho 1 KTV (QT-11)
+// Giới hạn số phiếu mở tối đa cho 1 KTV để cân bằng tải (Giải quyết Vấn đề V3 & FR5/US5 trong SRS)
 const MAX_OPEN_TICKETS_PER_TECH = 8;
 
 // Bản đồ vòng đời chuyển trạng thái hợp lệ theo QT-06 (một chiều, không đảo ngược)
@@ -53,7 +53,7 @@ class TicketService {
 
   /**
    * UC2: Phân công kỹ thuật viên cho phiếu bảo hành (Nghiệp vụ trọng tâm luồng L4)
-   * Thi hành các quy tắc nghiệp vụ: QT-06, QT-07, QT-08, QT-11
+   * Thi hành các quy tắc nghiệp vụ: QT-06, QT-07, QT-08, và cân bằng tải V3/FR5
    */
   async assignTechnician(ticketId, technicianId, changedBy = null, note = 'Phân công kỹ thuật viên') {
     // 1. Kiểm tra sự tồn tại của phiếu bảo hành
@@ -95,7 +95,7 @@ class TicketService {
       );
     }
 
-    // 6. QT-11: Kiểm tra khối lượng công việc hiện tại (workload)
+    // 6. V3 & FR5: Kiểm tra khối lượng công việc hiện tại (workload cân bằng tải)
     const openCount = await this.tickets.countOpenByTechnician(technicianId);
     if (openCount >= MAX_OPEN_TICKETS_PER_TECH) {
       throw new AppError(
