@@ -19,7 +19,7 @@
 | **Antigravity (Google DeepMind)** | Gợi ý cấu trúc khởi tạo lược đồ Prisma ORM và cấu hình quan hệ | `prisma/schema.prisma` | Đối chiếu trực tiếp với `docs/erd.dbml` và `db/schema.sql`; chạy `prisma validate` và kiểm tra đủ 6 bảng, khóa ngoại, kiểu dữ liệu JSONB `status_history`. |
 | **Antigravity (Google DeepMind)** | Gợi ý cấu trúc phân lớp 3 tầng (Routes - Services - Repositories) và lớp lỗi `AppError` | `src/errors/AppError.js`, `src/validators/` | Kiểm tra độc lập từng file: đảm bảo trong `services/` không chứa `req`, `res`, mã HTTP hay câu lệnh SQL thô; toàn bộ chuyển đổi HTTP tập trung tại `routes/`. |
 | **Antigravity (Google DeepMind)** | Gợi ý khung mã nguồn component `DataState.jsx` cho Frontend React | `frontend/src/components/DataState.jsx` | Tự kiểm thử thực tế cả 3 trạng thái: tắt backend để kiểm tra trạng thái lỗi có nút thử lại; lọc điều kiện trống để kiểm tra trạng thái rỗng có nút xóa bộ lọc; kiểm tra trạng thái tải khi delay mạng. |
-| _— Tự thực hiện —_ | Quyết định logic nghiệp vụ phân công kỹ thuật viên (QT-08, QT-06), điều kiện chuyển trạng thái, giải thuật SLA và toàn bộ kịch bản kiểm thử | `src/services/ticket.service.js`, `tests/` | Viết 24 kiểm thử tự động (đủ 3 loại: luồng đúng, giá trị biên, dữ liệu sai & vi phạm ràng buộc) và chạy lệnh `npm test` PASS 100% độc lập, không phụ thuộc môi trường máy cục bộ. |
+| _— Tự thực hiện —_ | Quyết định logic nghiệp vụ phân công kỹ thuật viên (QT-08, QT-06), điều kiện chuyển trạng thái, giải thuật SLA và toàn bộ kịch bản kiểm thử | `src/services/ticket.service.js`, `tests/` | Viết 28 kiểm thử tự động (đủ 3 loại: luồng đúng, giá trị biên, dữ liệu sai & vi phạm ràng buộc) và chạy lệnh `npm test` PASS 100% độc lập, không phụ thuộc môi trường máy cục bộ. |
  
  ---
  

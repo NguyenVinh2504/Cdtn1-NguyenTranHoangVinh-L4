@@ -22,7 +22,7 @@ Hệ thống Smart CRM - Luồng L4 giải quyết trọn vẹn bài toán đi�
 - **Frontend:** React 18, Vite, Tailwind CSS, Lucide Icons. Kiến trúc gọi API tách lớp riêng (`src/api/client.js`, `tickets.api.js`, `technicians.api.js`), xử lý tập trung 3 trạng thái (Đang tải, Rỗng có nút xóa lọc, Lỗi có nút thử lại).
 - **Backend:** Node.js 20 LTS, Express, Prisma ORM 5. Kiến trúc tách rời nghiêm ngặt 3 tầng: `routes/` (HTTP & mapping mã lỗi) ↔ `services/` (chứa toàn bộ quy tắc nghiệp vụ, không phụ thuộc HTTP) ↔ `repositories/` (truy xuất CSDL).
 - **Cơ sở dữ liệu:** PostgreSQL 16 (Lược đồ 6 bảng chuẩn 3NF: `customer`, `device`, `service_center`, `issue_category`, `technician`, `ticket`). Lịch sử chuyển trạng thái lưu dưới dạng `status_history` (JSONB Document-in-Row).
-- **Kiểm thử tự động:** Jest, 24 unit & integration test cases bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data).
+- **Kiểm thử tự động:** Jest, 28 unit & integration test cases bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data).
 - **Đóng gói & Triển khai:** Docker, `docker-compose.yml` (chạy toàn bộ backend + frontend + database bằng 1 lệnh).
 
 ---
@@ -38,15 +38,52 @@ Theo góp ý đánh giá Bài tập 1, hệ thống đã chuẩn hóa và giải
 
 ## 4. Hướng dẫn cài đặt và chạy hệ thống (Clone-and-Run)
 
-### Cách 1: Chạy trực tiếp bằng Node.js & Docker Database (Khuyến nghị)
+### 4.1. Yêu cầu môi trường & Phần mềm cần cài đặt trước (Prerequisites)
+
+Để đảm bảo hệ thống khởi chạy suôn sẻ và người chấm có thể tái lập nhanh chóng, máy tính cần được cài đặt sẵn các công cụ môi trường dưới đây:
+
+| STT | Phần mềm / Công cụ | Phiên bản khuyến nghị | Mục đích sử dụng | Lệnh kiểm tra phiên bản | Liên kết tải về chính thức |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **1** | **Node.js** | `>= 18.x` (Khuyến nghị **Node.js 20 LTS**) | Chạy ứng dụng Backend Express, Prisma CLI, và thực thi bộ kiểm thử Jest | `node -v` | [nodejs.org](https://nodejs.org/) (Chọn bản LTS) |
+| **2** | **npm** | `>= 9.x` (Tự động đi kèm Node.js) | Cài đặt và quản lý các thư viện dependencies (Backend & Frontend) | `npm -v` | Đi kèm cùng Node.js |
+| **3** | **Docker & Docker Compose** (hoặc **Docker Desktop**) | Docker Engine `>= 20.10`<br>Docker Compose `>= 2.0` | Khởi chạy container PostgreSQL (Cách 1) hoặc đóng gói chạy toàn bộ hệ thống trọn gói (Cách 2) | `docker -v`<br>`docker compose version` | [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/) |
+| **4** | **Git** *(Tùy chọn)* | `>= 2.30` | Sao chép (clone) mã nguồn dự án từ kho lưu trữ GitHub | `git --version` | [git-scm.com](https://git-scm.com/) |
+
+> [!IMPORTANT]
+> **Lưu ý đặc biệt quan trọng về môi trường:**
+> 1. **Đối với Docker / Docker Desktop:** Nếu chạy trên hệ điều hành **Windows** hoặc **macOS**, hãy đảm bảo **Docker Desktop đang được mở và ở trạng thái chạy** (biểu tượng cá voi ở khay hệ thống hiển thị màu xanh lá / *Docker Desktop is running*) trước khi thực thi các câu lệnh `docker` hoặc `docker compose`.
+> 2. **Lựa chọn cách chạy phù hợp với nhu cầu:**
+>    - **Cách 1 (Khuyên dùng cho Giảng viên chấm bài / Lập trình viên):** Chạy trực tiếp qua **Node.js** trên máy và dùng **Docker** để chạy nền cơ sở dữ liệu PostgreSQL. Cách này tối ưu nhất để vừa chạy ứng dụng, vừa kiểm tra mã nguồn, vừa chạy bộ test tự động `npm test` trực tiếp trên terminal.
+>    - **Cách 2 (Khuyên dùng khi máy chưa cài Node.js):** Chạy toàn bộ hệ thống (Web + API + DB) chỉ với **1 lệnh Docker Compose duy nhất**. Docker sẽ tự tải mọi môi trường runtime độc lập mà không cần bất kỳ can thiệp nào vào hệ điều hành máy thật.
+
+---
+
+### 4.2. Tải mã nguồn dự án (Clone Repository)
+
+Mở terminal (PowerShell, Command Prompt hoặc Terminal) và thực hiện clone dự án:
+
+```bash
+git clone https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4.git
+cd Cdtn1-NguyenTranHoangVinh-L4
+```
+*(Nếu nhận mã nguồn qua tệp nén `.zip`, giải nén và mở cửa sổ dòng lệnh tại thư mục gốc `Cdtn1-NguyenTranHoangVinh-L4`)*
+
+---
+
+### 4.3. Cách 1: Chạy trực tiếp bằng Node.js & Docker Database (Khuyến nghị)
 
 #### Bước 1: Chuẩn bị biến môi trường
+
+Sao chép tệp cấu hình mẫu `.env.example` thành `.env`:
 
 ```bash
 cp .env.example .env
 ```
+*(Trên Windows Command Prompt nếu lệnh `cp` không nhận, có thể dùng: `copy .env.example .env`)*
 
 #### Bước 2: Cài đặt thư viện dependencies
+
+Cài đặt đồng thời các gói phụ thuộc cho cả Backend và Frontend:
 
 ```bash
 npm install
@@ -55,50 +92,64 @@ npm --prefix frontend install
 
 #### Bước 3: Khởi tạo CSDL & Nạp dữ liệu mẫu (Idempotent Seed)
 
-```bash
-npx prisma db push
-node prisma/seed.js
-```
+- **3.1. Khởi động PostgreSQL qua Docker** (yêu cầu Docker Desktop đang chạy):
+  ```bash
+  docker compose up -d postgres
+  ```
+  *(Nếu máy bạn đã có sẵn PostgreSQL cục bộ trên cổng 5432, hãy đảm bảo thông tin kết nối trong file `.env` khớp với máy)*
 
-_(Nếu chưa có PostgreSQL cục bộ, có thể khởi động nhanh qua lệnh: `docker compose up -d postgres`)_
+- **3.2. Đẩy lược đồ bảng và nạp dữ liệu mẫu:**
+  ```bash
+  npx prisma db push
+  node prisma/seed.js
+  ```
+  *(Hoặc sử dụng câu lệnh gộp nhanh có sẵn trong package.json: `npm run db:setup`)*
 
-#### Bước 4: Khởi động hệ thống
+#### Bước 4: Khởi động hệ thống (2 Terminal độc lập)
 
-- **Chạy song song 2 dịch vụ độc lập:**
-  - **Terminal 1 (Backend API):**
+Mở 2 cửa sổ terminal riêng biệt để khởi động cả 2 dịch vụ:
 
-    ```bash
-    npm start       # hoặc npm run dev (nodemon hot-reload)
-    ```
+- **Terminal 1 — Khởi động Backend REST API:**
+  ```bash
+  npm start       # hoặc npm run dev (nodemon hot-reload tự động nạp lại khi sửa mã nguồn)
+  ```
+  - Backend API hoạt động tại: **http://localhost:3000**
+  - Kiểm tra sức khỏe hệ thống: **http://localhost:3000/health**
 
-    Backend API hoạt động tại: **http://localhost:3000**  
-    Kiểm tra sức khỏe: **http://localhost:3000/health**
-
-  - **Terminal 2 (Frontend React Web UI):**
-    ```bash
-    npm run client  # hoặc cd frontend && npm run dev
-    ```
-    Frontend Web UI hoạt động tại: **http://localhost:5173**
+- **Terminal 2 — Khởi động Frontend React Web UI:**
+  ```bash
+  npm run client  # hoặc cd frontend && npm run dev
+  ```
+  - Giao diện Web UI hoạt động tại: **http://localhost:5173**
 
 ---
 
-### Cách 2: Chạy toàn bộ hệ thống bằng Docker Compose (≤ 2 lệnh)
+### 4.4. Cách 2: Chạy toàn bộ hệ thống bằng Docker Compose (≤ 2 lệnh trọn gói)
+
+Nếu máy đã cài đặt và đang bật **Docker Desktop**, bạn có thể khởi chạy toàn bộ 3 dịch vụ (Web + API + DB) mà không cần cài đặt Node.js:
 
 ```bash
 docker compose up -d --build
 ```
+*(Lưu ý: Nếu hệ thống sử dụng Docker Compose v1 cũ hơn, hãy dùng lệnh: `docker-compose up -d --build`)*
 
-Hệ thống tự động dựng 3 dịch vụ container riêng biệt:
-
+Sau khi hoàn tất, hệ thống tự động dựng và khởi chạy 3 container độc lập:
 1. **Frontend Web UI (`web`):** Truy cập tại **http://localhost:5173**
 2. **Backend REST API (`api`):** Hoạt động tại **http://localhost:3000** (Health check: `http://localhost:3000/health`)
 3. **Database (`postgres`):** PostgreSQL 16 tại cổng `5432` (tự động nạp schema và seed dữ liệu mẫu)
+
+- **Khi muốn dừng toàn bộ hệ thống:**
+  ```bash
+  docker compose down
+  ```
 
 ---
 
 ## 5. Hướng dẫn chạy Bộ kiểm thử (Automated Tests)
 
-Chạy toàn bộ 24 test cases bằng **MỘT lệnh duy nhất** (không phụ thuộc vào CSDL máy cá nhân):
+*(Yêu cầu: Đã cài Node.js theo mục 4.1. Toàn bộ 28 kịch bản kiểm thử chạy độc lập, không phụ thuộc CSDL nhờ kiến trúc Mock Repository)*:
+
+Chạy toàn bộ 28 test cases bằng **MỘT lệnh duy nhất** (không phụ thuộc vào CSDL máy cá nhân):
 
 ```bash
 npm test
@@ -108,8 +159,11 @@ npm test
 
 - **Loại 1: Luồng đúng (Happy Path):**
   - `TC1.1`: Quản lý phân công KTV hợp lệ (cùng trung tâm, `proficiency = 4 >= 3`) thành công, chuyển `DA_PHAN_CONG`, append nhật ký `status_history`.
+  - `TC1.2` (CRUD Update Entity 1): Cập nhật thông tin phiếu bảo hành hợp lệ và tự động tính lại hạn SLA (QT-04).
+  - `TC1.3` (CRUD Read Entity 1): Tra cứu danh sách phiếu bảo hành qua `listTickets`.
   - `TC3.5` (CRUD Delete Entity 1): Xóa thành công phiếu bảo hành ở trạng thái tiếp nhận mới `MOI`.
   - `TC-TECH-2` & `TC-TECH-3`: Thêm mới và vô hiệu hóa (Soft Delete) kỹ thuật viên (CRUD Entity 2).
+  - `RT-1` tới `RT-7`: Kiểm thử toàn diện tầng HTTP Routes và ánh xạ mã lỗi sang HTTP status codes (200, 201, 400, 422).
 - **Loại 2: Giá trị biên (Boundary Conditions):**
   - `TC2.1`: KTV có đúng `proficiency = 3` (ngưỡng đạt tối thiểu QT-08) được phân công thành công.
   - `TC2.2`: KTV có `proficiency = 2` (ngay dưới ngưỡng 3) bị từ chối với mã lỗi `KTV_KHONG_DU_TAY_NGHE` (HTTP 422).
@@ -121,6 +175,73 @@ npm test
   - `TC3.4`: Thao tác trên mã phiếu không tồn tại trả về `PHIEU_KHONG_TON_TAI` (HTTP 404).
   - `TC3.6`: Từ chối xóa phiếu đang sửa chữa hoặc đã hoàn tất với mã `KHONG_THE_XOA_PHIEU` (HTTP 422).
   - `TC-VAL`: Kiểm tra tính hợp lệ dữ liệu đầu vào, thiếu trường bắt buộc trả về HTTP 400 kèm danh sách trường sai.
+
+---
+
+### 5.1. Kịch bản cURL kiểm thử nhanh các Endpoint CRUD & Quy tắc nghiệp vụ (Dành cho Giảng viên chấm)
+
+Sau khi khởi động backend (`npm start`), Giảng viên có thể chạy các lệnh `curl` sau để kiểm chứng:
+
+#### A. Thực thể 1: Ticket (Phiếu bảo hành) — Đủ 4 thao tác CRUD:
+```bash
+# 1. Tạo (Create - POST)
+curl -X POST http://localhost:3000/api/tickets \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":1,"deviceId":1,"centerId":2,"categoryId":1,"issueDesc":"Màn hình cảm ứng bị loạn điểm và chớp nháy liên tục","priority":"CAO"}'
+
+# 2. Đọc (Read - GET)
+curl http://localhost:3000/api/tickets?centerId=2
+curl http://localhost:3000/api/tickets/1
+
+# 3. Sửa (Update - PUT & Nghiệp vụ phân công)
+curl -X PUT http://localhost:3000/api/tickets/1 \
+  -H "Content-Type: application/json" \
+  -d '{"issueDesc":"Màn hình xuất hiện thêm sọc đen góc trái","priority":"TRUNG_BINH"}'
+
+# 4. Xóa (Delete - DELETE: Chỉ cho phép xóa phiếu MOI)
+curl -X DELETE http://localhost:3000/api/tickets/2 \
+  -H "Content-Type: application/json" \
+  -d '{"reason":"Khách hàng hủy sửa chữa mang máy về"}'
+```
+
+#### B. Thực thể 2: Technician (Kỹ thuật viên) — Đủ 4 thao tác CRUD:
+```bash
+# 1. Tạo (Create - POST)
+curl -X POST http://localhost:3000/api/technicians \
+  -H "Content-Type: application/json" \
+  -d '{"employeeId":"NV-KTV-099","fullName":"Trần Văn Thử Nghiệm","centerId":2,"level":"TRUNG_CAP","proficiency":4}'
+
+# 2. Đọc (Read - GET)
+curl http://localhost:3000/api/technicians?centerId=2
+curl http://localhost:3000/api/technicians/3
+
+# 3. Sửa (Update - PUT)
+curl -X PUT http://localhost:3000/api/technicians/3 \
+  -H "Content-Type: application/json" \
+  -d '{"level":"CAO_CAP","proficiency":5}'
+
+# 4. Xóa (Delete - DELETE: Soft delete chuyển isActive = false theo QT-13)
+curl -X DELETE http://localhost:3000/api/technicians/6
+```
+
+#### C. Kiểm chứng 2 Quy tắc nghiệp vụ thật:
+```bash
+# Quy tắc 1 (QT-08): Phân công KTV có proficiency = 2 (< 3) -> Từ chối HTTP 422 KTV_KHONG_DU_TAY_NGHE
+curl -X POST http://localhost:3000/api/tickets/1/assign \
+  -H "Content-Type: application/json" \
+  -d '{"technicianId":6}'
+
+# Quy tắc 2 (QT-06): Chuyển trạng thái ngược từ HOAN_TAT về MOI -> Từ chối HTTP 409 TRANG_THAI_KHONG_HOP_LE
+curl -X PATCH http://localhost:3000/api/tickets/4/status \
+  -H "Content-Type: application/json" \
+  -d '{"status":"MOI"}'
+```
+
+#### D. Kiểm chứng "Tệp Service hoàn toàn không có dấu vết HTTP":
+Mở tệp `src/services/ticket.service.js` và `src/services/technician.service.js` để xác nhận:
+- Không chứa `req`, `res`, không chứa `res.status(...)`.
+- Không chứa bất kỳ mã trạng thái HTTP nào (`200`, `400`, `404`, `422`, ...).
+- Mọi lỗi đều ném `AppError(code, message)` với mã nghiệp vụ thuần túy. Toàn bộ phần "biết về HTTP" nằm tại `src/routes/` và `src/middlewares/errorHandler.middleware.js`.
 
 ---
 
@@ -183,7 +304,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── middlewares/                  # Auth JWT, phoneMasker (QT-15), errorHandler tập trung
 │   ├── app.js                        # Ghép nối các tầng và phục vụ frontend build
 │   └── server.js                     # Khởi động dịch vụ trên cổng 3000
-├── tests/                            # Bộ kiểm thử tự động Jest (24 test cases)
+├── tests/                            # Bộ kiểm thử tự động Jest (28 test cases)
 │   ├── ticket.service.test.js        # Test nghiệp vụ phân công, giá trị biên, dữ liệu sai
 │   ├── technician.service.test.js    # Test quản lý KTV và cân bằng tải
 │   ├── ticket.validator.test.js      # Test kiểm tra dữ liệu đầu vào
@@ -212,7 +333,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 - [x] Tách đủ 3 lớp `routes/`, `services/`, `repositories/`, file service không chứa dấu vết HTTP.
 - [x] Đủ 4 thao tác CRUD trên ít nhất 2 thực thể (`Ticket` và `Technician`).
 - [x] Hiện thực các quy tắc nghiệp vụ cốt lõi: QT-08 (proficiency ≥ 3, cùng trung tâm), QT-06 (vòng đời không đảo ngược, ghi log JSONB), QT-04 (SLA tự động), QT-11 (quá tải KTV), FR4 (xung đột lịch hẹn).
-- [x] 24 kịch bản kiểm thử PASS 100% bằng lệnh `npm test` với 3 loại: luồng đúng, giá trị biên, dữ liệu sai.
+- [x] 28 kịch bản kiểm thử PASS 100% bằng lệnh `npm test` với 3 loại: luồng đúng, giá trị biên, dữ liệu sai.
 - [x] Frontend React với 3 màn hình chính kết nối API thật (M1, M2, M3).
 - [x] Xử lý đủ 3 trạng thái (đang tải, rỗng phân biệt, lỗi kết nối có nút thử lại).
 - [x] Che số điện thoại khách hàng `090****567` cho vai trò KTV (QT-15, NFR2).

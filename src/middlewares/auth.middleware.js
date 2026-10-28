@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config/jwt.config');
 const { AppError } = require('../errors/AppError');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_mekong_mobile_2026';
 
 /**
  * Middleware xác thực danh tính người dùng (JWT)

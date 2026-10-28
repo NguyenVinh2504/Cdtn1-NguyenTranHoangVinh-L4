@@ -10,6 +10,32 @@ module.exports = function ticketRoutes(ticketService) {
   const router = express.Router();
 
   /**
+   * Danh sách tất cả phiếu bảo hành (Thao tác Read của CRUD Entity 1)
+   * GET /api/tickets?centerId=2&status=MOI&priority=CAO&limit=50&offset=0
+   */
+  router.get('/', async (req, res, next) => {
+    try {
+      const { centerId, status, categoryId, priority, limit, offset } = req.query;
+      const result = await ticketService.listTickets({
+        centerId: centerId || req.user?.centerId,
+        status,
+        categoryId,
+        priority,
+        limit,
+        offset
+      });
+
+      res.status(200).json({
+        success: true,
+        data: result.items,
+        total: result.total
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
    * UC1: Danh sách phiếu chờ phân công tại trung tâm (MOI)
    * GET /api/tickets/unassigned?centerId=2&priority=CAO
    */
@@ -41,7 +67,7 @@ module.exports = function ticketRoutes(ticketService) {
    */
   router.get('/technician/mine', async (req, res, next) => {
     try {
-      const technicianId = req.query.technicianId || req.user?.id || 5;
+      const technicianId = req.query.technicianId || req.user?.id || 3;
       const { status, limit, offset } = req.query;
 
       const result = await ticketService.listTechnicianTickets(technicianId, {
@@ -88,6 +114,23 @@ module.exports = function ticketRoutes(ticketService) {
       res.status(200).json({
         success: true,
         data: ticket
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  /**
+   * Cập nhật thông tin phiếu bảo hành (Thao tác Update của CRUD Entity 1)
+   * PUT /api/tickets/:id
+   */
+  router.put('/:id', async (req, res, next) => {
+    try {
+      const updated = await ticketService.updateTicket(req.params.id, req.body);
+      res.status(200).json({
+        success: true,
+        message: 'Cập nhật phiếu bảo hành thành công',
+        data: updated
       });
     } catch (err) {
       next(err);

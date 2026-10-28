@@ -20,7 +20,7 @@
 -- Phục vụ: FR1, US1 (tra cứu thông tin khách khi phân công)
 -- Ràng buộc: QT-15 (che số điện thoại ở lớp Presentation)
 -- =============================================================================
-CREATE TABLE customer (
+CREATE TABLE IF NOT EXISTS customer (
     customer_id   BIGSERIAL      PRIMARY KEY,
     full_name     VARCHAR(120)  NOT NULL,
     phone         VARCHAR(20)   NOT NULL UNIQUE,        -- QT-01, QT-02: chuẩn hóa 10 số bắt đầu 0
@@ -35,7 +35,7 @@ CREATE TABLE customer (
 -- Nguồn: SRS mục 1.4, Case study mục 8
 -- Phục vụ: FR2, US2 (QT-08: KTV cùng trung tâm mới được phân công)
 -- =============================================================================
-CREATE TABLE service_center (
+CREATE TABLE IF NOT EXISTS service_center (
     center_id     BIGSERIAL     PRIMARY KEY,
     center_name   VARCHAR(100)  NOT NULL,
     address       VARCHAR(255)  NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE service_center (
 -- Nguồn: SRS mục 1.4, Case study mục 8
 -- Phục vụ: FR1, FR2 (QT-03: serial_no duy nhất, QT-05: kiểm tra bảo hành)
 -- =============================================================================
-CREATE TABLE device (
+CREATE TABLE IF NOT EXISTS device (
     device_id     BIGSERIAL     PRIMARY KEY,
     customer_id   BIGINT        NOT NULL REFERENCES customer(customer_id),
     serial_no     VARCHAR(50)   NOT NULL UNIQUE,        -- QT-03: xác định duy nhất bằng serial/IMEI
@@ -60,15 +60,15 @@ CREATE TABLE device (
     CONSTRAINT chk_warranty_positive CHECK (warranty_months >= 0)
 );
 
-CREATE INDEX idx_device_customer ON device(customer_id);
-CREATE INDEX idx_device_serial   ON device(serial_no);  -- Tra cứu nhanh theo serial
+CREATE INDEX IF NOT EXISTS idx_device_customer ON device(customer_id);
+CREATE INDEX IF NOT EXISTS idx_device_serial   ON device(serial_no);  -- Tra cứu nhanh theo serial
 
 -- =============================================================================
 -- BẢNG 4: issue_category – Nhóm sự cố (danh mục)
 -- Nguồn: SRS mục 1.4, Case study mục 8
 -- Phục vụ: FR2, US2 (Phân loại sự cố, tính SLA mặc định QT-04)
 -- =============================================================================
-CREATE TABLE issue_category (
+CREATE TABLE IF NOT EXISTS issue_category (
     category_id       SERIAL        PRIMARY KEY,
     category_name     VARCHAR(60)   NOT NULL UNIQUE,    -- MAN_HINH, PIN, SAC, PHAN_MEM, NUOC_VAO, KHAC
     default_priority  VARCHAR(10)  NOT NULL
@@ -83,7 +83,8 @@ INSERT INTO issue_category (category_name, default_priority) VALUES
     ('SAC',        'THAP'),
     ('PHAN_MEM',   'THAP'),
     ('NUOC_VAO',   'CAO'),
-    ('KHAC',       'TRUNG_BINH');
+    ('KHAC',       'TRUNG_BINH')
+ON CONFLICT (category_name) DO NOTHING;
 
 -- =============================================================================
 -- BẢNG 5: technician – Kỹ thuật viên (đã gộp proficiency)
@@ -91,7 +92,7 @@ INSERT INTO issue_category (category_name, default_priority) VALUES
 -- Phục vụ: FR2, FR5, US2, US3 (QT-08: cùng trung tâm, proficiency >= 3)
 -- GỘP TỪ: bảng technician_skill cũ → proficiency (1–5) lưu thẳng trong technician
 -- =============================================================================
-CREATE TABLE technician (
+CREATE TABLE IF NOT EXISTS technician (
     technician_id  BIGSERIAL     PRIMARY KEY,
     employee_id    VARCHAR(20)   NOT NULL UNIQUE,
     full_name      VARCHAR(120)  NOT NULL,
@@ -105,10 +106,10 @@ CREATE TABLE technician (
 );
 
 -- INDEX: phục vụ QT-08 – lọc KTV theo trung tâm và trạng thái
-CREATE INDEX idx_tech_center_active ON technician(center_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_tech_center_active ON technician(center_id, is_active);
 
 -- INDEX: tìm nhanh KTV đủ tay nghề (proficiency >= 3)
-CREATE INDEX idx_tech_proficiency ON technician(proficiency) WHERE proficiency >= 3;
+CREATE INDEX IF NOT EXISTS idx_tech_proficiency ON technician(proficiency) WHERE proficiency >= 3;
 
 -- =============================================================================
 -- BẢNG 6: ticket – Phiếu bảo hành (BẢNG TRUNG TÂM – gộp log + lịch hẹn)
@@ -119,7 +120,7 @@ CREATE INDEX idx_tech_proficiency ON technician(proficiency) WHERE proficiency >
 -- GỘP TỪ: ticket_status_log (→ status_history JSONB)
 --          appointment (→ appointment_at + appointment_status)
 -- =============================================================================
-CREATE TABLE ticket (
+CREATE TABLE IF NOT EXISTS ticket (
     ticket_id       BIGSERIAL     PRIMARY KEY,
     ticket_code     VARCHAR(20)   NOT NULL UNIQUE,     -- Dạng: BH-000123/2026
 
@@ -174,34 +175,34 @@ CREATE TABLE ticket (
 
 -- INDEX 1: NFR1 – Lọc phiếu MOI theo trung tâm, sắp theo thời gian tiếp nhận
 -- Phục vụ: FR1, US1 – "Xem danh sách phiếu chờ phân công"
-CREATE INDEX idx_ticket_status_center_received
+CREATE INDEX IF NOT EXISTS idx_ticket_status_center_received
     ON ticket(status, center_id, received_at DESC);
 
 -- INDEX 2: NFR1 – Workload + SLA
 -- Phục vụ: FR3, US3 – "KTV xem phiếu được gán theo hạn SLA"
 -- Phục vụ: FR5, US5 – "Xem khối lượng công việc KTV"
-CREATE INDEX idx_ticket_tech_due
+CREATE INDEX IF NOT EXISTS idx_ticket_tech_due
     ON ticket(technician_id, due_date ASC)
     WHERE status IN ('DA_PHAN_CONG', 'DANG_XU_LY', 'CHO_LINH_KIEN');  -- Partial index
 
 -- INDEX 3: Tìm phiếu sắp quá hạn (cảnh báo SLA)
 -- Phục vụ: US3 – Cảnh báo phiếu < 4 giờ đến hạn
-CREATE INDEX idx_ticket_due_warning
+CREATE INDEX IF NOT EXISTS idx_ticket_due_warning
     ON ticket(due_date)
     WHERE status NOT IN ('DA_DONG', 'DA_HUY');
 
 -- INDEX 4: Tra cứu nhanh theo mã phiếu
-CREATE INDEX idx_ticket_code ON ticket(ticket_code);
+CREATE INDEX IF NOT EXISTS idx_ticket_code ON ticket(ticket_code);
 
 -- INDEX 5: Kiểm tra trùng lịch hẹn (FR4)
 -- Phục vụ: "Hệ thống phát hiện xung đột khi đặt lịch hẹn trùng khung giờ"
-CREATE INDEX idx_ticket_appointment
+CREATE INDEX IF NOT EXISTS idx_ticket_appointment
     ON ticket(technician_id, appointment_at)
     WHERE appointment_at IS NOT NULL
       AND appointment_status IN ('SCHEDULED', 'CONFIRMED');
 
 -- INDEX 6: Truy vấn JSONB status_history
-CREATE INDEX idx_ticket_status_history_gin
+CREATE INDEX IF NOT EXISTS idx_ticket_status_history_gin
     ON ticket USING GIN (status_history);
 
 -- =============================================================================
@@ -428,7 +429,8 @@ INSERT INTO service_center (center_name, address, city) VALUES
     ('Trung tâm Cần Thơ 1', '789 Đường 30/4, Q.Ninh Kiều, Cần Thơ', 'Can Tho'),
     ('Trung tâm Cần Thơ 2', '321 Đường Nguyễn Văn Linh, Q.Ninh Kiều, Cần Thơ', 'Can Tho'),
     ('Trung tâm Hà Nội 1', '99 Đường Láng Hạ, Đống Đa, Hà Nội', 'Ha Noi'),
-    ('Trung tâm Hà Nội 2', '100 Đường Giải Phóng, Hai Bà Trưng, Hà Nội', 'Ha Noi');
+    ('Trung tâm Hà Nội 2', '100 Đường Giải Phóng, Hai Bà Trưng, Hà Nội', 'Ha Noi')
+ON CONFLICT DO NOTHING;
 
 -- =============================================================================
 -- GHI CHÚ KỸ THUẬT

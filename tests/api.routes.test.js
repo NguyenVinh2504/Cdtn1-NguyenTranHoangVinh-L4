@@ -8,7 +8,9 @@ describe('TicketRoutes - Kiểm thử tầng HTTP & Middleware ánh xạ mã l�
 
   beforeEach(() => {
     mockTicketService = {
+      listTickets: jest.fn(async () => ({ total: 1, items: [{ ticketId: 1, ticketCode: 'BH-01' }] })),
       listUnassigned: jest.fn(async () => ({ total: 1, items: [{ ticketId: 1, status: 'MOI' }] })),
+      updateTicket: jest.fn(async (id, data) => ({ ticketId: id, ...data })),
       assignTechnician: jest.fn(async (id, techId) => {
         if (techId === 999) {
           throw new AppError('KTV_KHONG_DU_TAY_NGHE', 'Điểm tay nghề không đủ');
@@ -117,6 +119,35 @@ describe('TicketRoutes - Kiểm thử tầng HTTP & Middleware ánh xạ mã l�
     expect(res.statusCode).toBe(200);
     expect(res.jsonData.success).toBe(true);
     expect(mockTicketService.deleteTicket).toHaveBeenCalledWith('15', 'Khách hủy sửa chữa');
+  });
+
+  test('RT-6: GET / (Read all) gọi service listTickets và trả về HTTP 200', async () => {
+    const { req, res } = mockRequestResponse({ query: { status: 'MOI' } });
+    const layer = router.stack.find(l => l.route && l.route.path === '/' && l.route.methods.get);
+    expect(layer).toBeDefined();
+
+    const handler = layer.route.stack[0].handle;
+    await handler(req, res, () => {});
+
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonData.success).toBe(true);
+    expect(mockTicketService.listTickets).toHaveBeenCalled();
+  });
+
+  test('RT-7: PUT /:id (Update) gọi service updateTicket và trả về HTTP 200', async () => {
+    const { req, res } = mockRequestResponse({
+      params: { id: '10' },
+      body: { issueDesc: 'Thay đổi mô tả lỗi thiết bị chi tiết hơn' }
+    });
+    const layer = router.stack.find(l => l.route && l.route.path === '/:id' && l.route.methods.put);
+    expect(layer).toBeDefined();
+
+    const handler = layer.route.stack[0].handle;
+    await handler(req, res, () => {});
+
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonData.success).toBe(true);
+    expect(mockTicketService.updateTicket).toHaveBeenCalledWith('10', expect.any(Object));
   });
 });
 

@@ -57,6 +57,7 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
 
     mockTicketRepo = {
       findById: jest.fn(async id => fakeTickets.find(t => t.ticketId === Number(id)) || null),
+      findMany: jest.fn(async () => ({ total: fakeTickets.length, items: fakeTickets })),
       countOpenByTechnician: jest.fn(async techId => 2),
       update: jest.fn(async (id, updateData) => {
         const ticket = fakeTickets.find(t => t.ticketId === Number(id));
@@ -110,6 +111,23 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
       expect(latestLog.by).toBe(99);
       expect(latestLog.note).toBe('Phân công đúng tay nghề');
       expect(latestLog.at).toBeDefined();
+    });
+
+    test('TC1.2 (CRUD Update Entity 1): Cập nhật thông tin phiếu bảo hành hợp lệ và tự động tính lại hạn SLA (QT-04)', async () => {
+      const updated = await ticketService.updateTicket(101, {
+        issueDesc: 'Mô tả sự cố mới đã được cập nhật chi tiết trên 10 ký tự',
+        priority: 'TRUNG_BINH'
+      });
+      expect(updated.issueDesc).toBe('Mô tả sự cố mới đã được cập nhật chi tiết trên 10 ký tự');
+      expect(updated.priority).toBe('TRUNG_BINH');
+      // SLA 72 giờ từ ngày tiếp nhận 2026-10-25T08:00:00Z
+      expect(new Date(updated.dueDate).toISOString()).toBe(new Date('2026-10-28T08:00:00Z').toISOString());
+    });
+
+    test('TC1.3 (CRUD Read Entity 1): Tra cứu danh sách phiếu bảo hành qua listTickets', async () => {
+      const result = await ticketService.listTickets({ centerId: 2 });
+      expect(result.total).toBe(2);
+      expect(result.items).toHaveLength(2);
     });
   });
 

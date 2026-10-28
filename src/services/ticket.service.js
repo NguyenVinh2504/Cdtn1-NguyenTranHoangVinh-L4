@@ -226,6 +226,48 @@ class TicketService {
   }
 
   /**
+   * Lấy danh sách tất cả phiếu bảo hành theo bộ lọc (Thao tác Read của CRUD Entity 1)
+   */
+  async listTickets(options = {}) {
+    return this.tickets.findMany(options);
+  }
+
+  /**
+   * Cập nhật thông tin phiếu bảo hành (Thao tác Update của CRUD Entity 1)
+   * Ràng buộc nghiệp vụ: Nếu cập nhật mức ưu tiên (priority), tự động tính lại hạn SLA due_date (QT-04)
+   */
+  async updateTicket(ticketId, data) {
+    const ticket = await this.tickets.findById(ticketId);
+    if (!ticket) {
+      throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành ID ${ticketId}`);
+    }
+
+    // Không được sửa thông tin nếu phiếu đã đóng hoặc hủy
+    if (['DA_DONG', 'DA_HUY'].includes(ticket.status)) {
+      throw new AppError(
+        'TRANG_THAI_KHONG_HOP_LE',
+        `Không thể sửa thông tin phiếu bảo hành đang ở trạng thái '${ticket.status}'.`
+      );
+    }
+
+    const updatePayload = {};
+    if (data.issueDesc !== undefined) {
+      if (typeof data.issueDesc !== 'string' || data.issueDesc.trim().length < 10) {
+        throw new AppError('DU_LIEU_KHONG_HOP_LE', 'Mô tả sự cố phải có độ dài tối thiểu từ 10 ký tự');
+      }
+      updatePayload.issueDesc = data.issueDesc.trim();
+    }
+
+    if (data.priority !== undefined) {
+      // Tính lại hạn cam kết SLA khi đổi mức ưu tiên theo QT-04
+      updatePayload.priority = data.priority;
+      updatePayload.dueDate = this.calculateDueDate(ticket.receivedAt, data.priority);
+    }
+
+    return this.tickets.update(ticketId, updatePayload);
+  }
+
+  /**
    * Lấy danh sách phiếu chờ phân công tại trung tâm
    */
   async listUnassigned(centerId, options = {}) {

@@ -32,7 +32,7 @@ function maskPhoneDisplay(phone) {
   return trimmed.replace(/(\d{3})\d+(\d{3})/, '$1****$2');
 }
 
-export function TechnicianTicketsPage({ currentUserId = 5 }) {
+export function TechnicianTicketsPage({ currentUserId = 3 }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

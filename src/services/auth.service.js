@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../middlewares/auth.middleware');
+const { JWT_SECRET } = require('../config/jwt.config');
 const { AppError } = require('../errors/AppError');
 
 // Danh sách tài khoản demo mẫu phục vụ chạy thử nghiệm
@@ -15,8 +15,16 @@ const DEMO_USERS = [
   {
     username: 'ktv_nguyenvana',
     password: 'password123',
-    id: 5,
+    id: 3,
     fullName: 'Nguyễn Văn A (KTV Chuyên Sâu)',
+    role: 'TECHNICIAN',
+    centerId: 2
+  },
+  {
+    username: 'ktv_dohuuthang',
+    password: 'password123',
+    id: 5,
+    fullName: 'Đỗ Hữu Thắng (KTV Trung Cấp)',
     role: 'TECHNICIAN',
     centerId: 2
   },

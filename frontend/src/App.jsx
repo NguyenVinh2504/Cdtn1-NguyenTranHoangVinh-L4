@@ -47,7 +47,7 @@ export default function App() {
   const handleSwitchRole = () => {
     if (currentUser?.role === 'CENTER_MANAGER') {
       const ktvUser = {
-        id: 5,
+        id: 3,
         fullName: 'Nguyễn Văn A (KTV)',
         role: 'TECHNICIAN',
         centerId: 2
