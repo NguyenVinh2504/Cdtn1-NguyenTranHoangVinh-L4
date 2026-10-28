@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { fetchUnassignedTickets, deleteTicket } from '../api/tickets.api';
+import { fetchTechnicians } from '../api/technicians.api';
 import { DataState } from '../components/DataState';
-import { PriorityBadge, StatusBadge } from '../components/Badge';
+import { PriorityBadge, StatusBadge, SegmentBadge } from '../components/Badge';
+import TicketDetailModal from './TicketDetailModal';
+import Toast from '../components/Toast';
+import { formatDateTime, getSlaInfo } from '../utils/date';
 import {
   UserCheck,
   Clock,
   AlertTriangle,
-  Filter,
   Search,
   RotateCcw,
   Trash2,
@@ -15,8 +18,9 @@ import {
   Flame,
   ClipboardList,
   Users,
-  CheckCircle2,
-  Calendar
+  Eye,
+  X,
+  Filter
 } from 'lucide-react';
 
 export function TicketListPage({ onSelectTicketForAssign }) {
@@ -24,21 +28,38 @@ export function TicketListPage({ onSelectTicketForAssign }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Danh sách KTV để tính KPI thật
+  const [readyTechCount, setReadyTechCount] = useState(null);
+
   // Bộ lọc
   const [filterPriority, setFilterPriority] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [quickFilter, setQuickFilter] = useState('ALL'); // ALL | URGENT | HIGH | SCREEN | BATTERY
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Modals & Toasts
+  const [viewingTicket, setViewingTicket] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
-  const [actionMessage, setActionMessage] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const loadTickets = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchUnassignedTickets({
-        centerId: 2,
-        priority: filterPriority || undefined
-      });
-      setTickets(data);
+      const [ticketsData, techsData] = await Promise.all([
+        fetchUnassignedTickets({
+          centerId: 2,
+          priority: filterPriority || undefined,
+          categoryId: filterCategory || undefined
+        }),
+        fetchTechnicians({ centerId: 2 }).catch(() => [])
+      ]);
+
+      setTickets(ticketsData || []);
+      if (Array.isArray(techsData)) {
+        const eligible = techsData.filter(t => t.isActive && (t.proficiency >= 3 || !t.proficiency));
+        setReadyTechCount(eligible.length);
+      }
     } catch (err) {
       setError(err);
     } finally {
@@ -48,187 +69,303 @@ export function TicketListPage({ onSelectTicketForAssign }) {
 
   useEffect(() => {
     loadTickets();
-  }, [filterPriority]);
+  }, [filterPriority, filterCategory]);
 
-  // Lọc tìm kiếm client-side theo mã phiếu hoặc thiết bị
+  // Lọc client-side kết hợp quickFilter và searchQuery
   const filteredTickets = tickets.filter(t => {
+    // 1. Quick filter
+    if (quickFilter === 'URGENT') {
+      const sla = getSlaInfo(t.dueDate);
+      if (!sla.isUrgent) return false;
+    } else if (quickFilter === 'HIGH') {
+      if (t.priority !== 'CAO') return false;
+    } else if (quickFilter === 'SCREEN') {
+      if (t.category?.categoryName !== 'MAN_HINH' && t.categoryId !== 1) return false;
+    } else if (quickFilter === 'BATTERY') {
+      if (t.category?.categoryName !== 'PIN' && t.categoryId !== 2) return false;
+    }
+
+    // 2. Search query
     if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
     return (
       t.ticketCode?.toLowerCase().includes(q) ||
       t.device?.serialNo?.toLowerCase().includes(q) ||
       t.device?.productName?.toLowerCase().includes(q) ||
       t.customer?.fullName?.toLowerCase().includes(q) ||
+      t.customer?.phone?.toLowerCase().includes(q) ||
+      t.category?.categoryName?.toLowerCase().includes(q) ||
       t.issueDesc?.toLowerCase().includes(q)
     );
   });
 
-  const isFiltered = Boolean(filterPriority || searchQuery);
+  const isFiltered = Boolean(filterPriority || filterCategory || quickFilter !== 'ALL' || searchQuery);
 
   const handleClearFilters = () => {
     setFilterPriority('');
+    setFilterCategory('');
+    setQuickFilter('ALL');
     setSearchQuery('');
   };
 
-  // Tính số giờ còn lại tới hạn cam kết SLA
-  const getRemainingHours = (dueDate) => {
-    const diffMs = new Date(dueDate).getTime() - Date.now();
-    return Math.round(diffMs / (3600 * 1000));
-  };
-
-  // Xóa / Hủy tiếp nhận phiếu (Thao tác Delete của CRUD Entity 1)
+  // Xóa / Hủy tiếp nhận phiếu
   const handleDeleteTicket = async (ticket) => {
     const confirmDelete = window.confirm(
-      `Xác nhận xóa phiếu bảo hành ${ticket.ticketCode} (${ticket.device?.productName || 'Thiết bị'})?`
+      `Xác nhận hủy tiếp nhận phiếu bảo hành ${ticket.ticketCode} (${ticket.device?.productName || 'Thiết bị'})?`
     );
     if (!confirmDelete) return;
 
     setDeletingId(ticket.ticketId);
     try {
       await deleteTicket(ticket.ticketId, 'Quản lý hủy tiếp nhận phiếu');
-      setActionMessage(`Đã xóa thành công phiếu bảo hành ${ticket.ticketCode}`);
-      setTimeout(() => setActionMessage(null), 3500);
+      setToast({
+        type: 'success',
+        title: 'Thành công',
+        message: `Đã hủy tiếp nhận phiếu ${ticket.ticketCode}`
+      });
       await loadTickets();
     } catch (err) {
-      alert(`Không thể xóa phiếu: ${err.message || 'Lỗi không xác định'}`);
+      setToast({
+        type: 'error',
+        title: 'Không thể xóa phiếu',
+        message: err.message || 'Lỗi không xác định khi xóa phiếu'
+      });
     } finally {
       setDeletingId(null);
     }
   };
 
-  // Thống kê nhanh số liệu cho 4 thẻ KPI
-  const urgentCount = tickets.filter(t => getRemainingHours(t.dueDate) <= 4).length;
+  // Thống kê
+  const urgentCount = tickets.filter(t => getSlaInfo(t.dueDate).isUrgent).length;
   const highPriorityCount = tickets.filter(t => t.priority === 'CAO').length;
 
   return (
-    <div className="space-y-6">
-      {/* Banner thông báo hành động thành công */}
-      {actionMessage && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>{actionMessage}</span>
-          </div>
-          <button onClick={() => setActionMessage(null)} className="text-emerald-600 hover:text-emerald-900">×</button>
-        </div>
-      )}
+    <div className="space-y-5">
+      {/* Toast thông báo nổi */}
+      <Toast toast={toast} onClose={() => setToast(null)} />
 
-      {/* Header & Tiêu đề trang Enterprise */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      {/* Header trang tối giản, sang trọng */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
               Điều phối Phiếu bảo hành
             </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
-              Trung tâm 2 Tân Bình
+            <span className="text-xs px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+              TT2 Tân Bình
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Quản lý trung tâm rà soát thiết bị tiếp nhận mới, kiểm tra hạn cam kết SLA và phân công kỹ thuật viên theo tay nghề (QT-08) & tải hiện tại (QT-11).
+          <p className="text-xs text-slate-500 mt-1">
+            Rà soát thiết bị tiếp nhận mới, kiểm soát cam kết SLA và phân công kỹ thuật viên theo chuẩn QT-08 & QT-11.
           </p>
         </div>
 
         <button
           onClick={loadTickets}
-          className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-all border border-slate-200 shadow-sm active:scale-95 self-start md:self-auto"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-lg border border-slate-200 shadow-xs transition-colors self-start sm:self-auto"
         >
           <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-          <span>Làm mới dữ liệu</span>
+          <span>Làm mới</span>
         </button>
       </div>
 
-      {/* 4 Thẻ KPI Stats Widget chuẩn SaaS Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Tổng phiếu chờ */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Chờ phân công</p>
-            <p className="text-2xl font-black text-slate-900 mt-0.5">{tickets.length}</p>
-            <p className="text-[10px] text-blue-600 font-medium mt-0.5">Tiếp nhận mới tại TT2</p>
+      {/* 4 Thẻ KPI Metric Cards - Chuẩn SaaS Dashboard (Linear/Stripe style) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+        {/* Card 1: Chờ phân công */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Chờ phân công
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+              <ClipboardList className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
-            <ClipboardList className="w-6 h-6" />
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tracking-tight text-slate-900">
+              {tickets.length}
+            </span>
+            <span className="text-xs text-slate-500 font-normal">phiếu mới</span>
           </div>
-        </div>
-
-        {/* Card 2: Phiếu cận SLA (< 4h) */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Cận hạn SLA (≤ 4h)</p>
-            <p className="text-2xl font-black text-rose-600 mt-0.5">{urgentCount}</p>
-            <p className="text-[10px] text-rose-500 font-medium mt-0.5">Cần phân công gấp</p>
-          </div>
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${urgentCount > 0 ? 'bg-rose-50 border border-rose-200 text-rose-600 animate-pulse' : 'bg-slate-50 border border-slate-100 text-slate-400'}`}>
-            <AlertTriangle className="w-6 h-6" />
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            <span>Tiếp nhận tại TT2 Tân Bình</span>
           </div>
         </div>
 
-        {/* Card 3: Ưu tiên CAO (24h) */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ưu tiên CAO (24h)</p>
-            <p className="text-2xl font-black text-amber-600 mt-0.5">{highPriorityCount}</p>
-            <p className="text-[10px] text-amber-600 font-medium mt-0.5">Xử lý theo QT-04</p>
+        {/* Card 2: Cận hạn SLA (<= 4h) */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Cận hạn SLA (≤ 4h)
+            </span>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+              urgentCount > 0 ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-400'
+            }`}>
+              <AlertTriangle className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
-            <Flame className="w-6 h-6" />
+          <div className="flex items-baseline gap-2">
+            <span className={`text-2xl font-bold tracking-tight ${
+              urgentCount > 0 ? 'text-amber-600' : 'text-slate-900'
+            }`}>
+              {urgentCount}
+            </span>
+            <span className="text-xs text-slate-500 font-normal">phiếu khẩn</span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              urgentCount > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+            }`}></span>
+            <span>{urgentCount > 0 ? 'Cần ưu tiên phân công ngay' : 'Đều trong tầm kiểm soát'}</span>
           </div>
         </div>
 
-        {/* Card 4: Kỹ thuật viên sẵn sàng */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">KTV Trực sẵn sàng</p>
-            <p className="text-2xl font-black text-emerald-600 mt-0.5">4</p>
-            <p className="text-[10px] text-emerald-600 font-medium mt-0.5">Đạt chuẩn proficiency ≥ 3</p>
+        {/* Card 3: Ưu tiên CAO */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              Ưu tiên Cao
+            </span>
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+              highPriorityCount > 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-50 text-slate-400'
+            }`}>
+              <Flame className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-            <Users className="w-6 h-6" />
+          <div className="flex items-baseline gap-2">
+            <span className={`text-2xl font-bold tracking-tight ${
+              highPriorityCount > 0 ? 'text-rose-600' : 'text-slate-900'
+            }`}>
+              {highPriorityCount}
+            </span>
+            <span className="text-xs text-slate-500 font-normal">SLA 24 giờ</span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+            <span>Quy định thời hạn QT-04</span>
+          </div>
+        </div>
+
+        {/* Card 4: KTV Trực sẵn sàng */}
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+              KTV Trực sẵn sàng
+            </span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold tracking-tight text-slate-900">
+              {readyTechCount !== null ? readyTechCount : '—'}
+            </span>
+            <span className="text-xs text-slate-500 font-normal">kỹ thuật viên</span>
+          </div>
+          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Đạt chuẩn tay nghề (bậc ≥ 3)</span>
           </div>
         </div>
       </div>
 
-      {/* Thanh Tìm kiếm & Bộ lọc hiện đại */}
-      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center gap-3">
-        <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-          <input
-            type="text"
-            placeholder="Tìm theo mã phiếu, số serial thiết bị, tên khách hàng, lỗi..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-slate-700"
-          />
-        </div>
+      {/* Toolbar Tích hợp: Bộ lọc và Tìm kiếm đồng bộ */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-3 space-y-2.5">
+        {/* Hàng 1: Tìm kiếm & Dropdown filters */}
+        <div className="flex flex-col md:flex-row items-center gap-2.5">
+          {/* Ô tìm kiếm */}
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Tìm mã phiếu (BH-..), serial, tên khách, số điện thoại, thiết bị..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-lg focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-slate-800 transition-colors"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
-        <div className="flex items-center gap-2.5 w-full md:w-auto">
-          <div className="flex items-center gap-2 flex-1 md:flex-initial">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
+          {/* Bộ chọn Mức ưu tiên */}
+          <div className="w-full md:w-44">
             <select
               value={filterPriority}
               onChange={(e) => setFilterPriority(e.target.value)}
-              className="text-xs font-medium border border-slate-200 rounded-xl px-3 py-2 bg-slate-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 w-full"
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50/70 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700"
             >
-              <option value="">Tất cả mức độ ưu tiên</option>
-              <option value="CAO">Ưu tiên CAO (SLA 24h)</option>
-              <option value="TRUNG_BINH">Ưu tiên TRUNG BÌNH (SLA 72h)</option>
-              <option value="THAP">Ưu tiên THẤP (SLA 120h)</option>
+              <option value="">Tất cả mức ưu tiên</option>
+              <option value="CAO">Ưu tiên CAO (24h)</option>
+              <option value="TRUNG_BINH">Ưu tiên VỪA (72h)</option>
+              <option value="THAP">Ưu tiên THẤP (120h)</option>
+            </select>
+          </div>
+
+          {/* Bộ chọn Nhóm sự cố */}
+          <div className="w-full md:w-44">
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full text-xs border border-slate-200 rounded-lg px-2.5 py-1.5 bg-slate-50/70 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700"
+            >
+              <option value="">Tất cả nhóm sự cố</option>
+              <option value="1">Màn hình (MAN_HINH)</option>
+              <option value="2">Pin & Nguồn (PIN)</option>
+              <option value="3">Cổng sạc (SAC)</option>
+              <option value="4">Phần mềm (PHAN_MEM)</option>
+              <option value="5">Nước vào (NUOC_VAO)</option>
+              <option value="6">Khác (KHAC)</option>
             </select>
           </div>
 
           {isFiltered && (
             <button
               onClick={handleClearFilters}
-              className="px-3 py-2 text-xs text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors whitespace-nowrap"
+              className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-800 font-medium hover:bg-rose-50 rounded-lg transition-colors whitespace-nowrap self-stretch md:self-auto text-center"
             >
-              Xóa bộ lọc
+              Đặt lại
             </button>
           )}
         </div>
+
+        {/* Hàng 2: Segmented Tabs (Lọc nhanh trực quan) */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+          <span className="text-[11px] font-medium text-slate-400 mr-1">Bộ lọc:</span>
+          {[
+            { key: 'ALL', label: `Tất cả (${tickets.length})` },
+            { key: 'URGENT', label: `Khẩn cấp ≤ 4h (${urgentCount})`, highlight: urgentCount > 0 },
+            { key: 'HIGH', label: `Ưu tiên CAO (${highPriorityCount})` },
+            { key: 'SCREEN', label: 'Lỗi Màn hình' },
+            { key: 'BATTERY', label: 'Lỗi Pin & Nguồn' }
+          ].map((tab) => {
+            const isActive = quickFilter === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setQuickFilter(tab.key)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : tab.highlight
+                    ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Danh sách phiếu bảo hành qua DataState (3 trạng thái chuẩn mực) */}
+      {/* Bảng danh sách phiếu bảo hành */}
       <DataState
         loading={loading}
         error={error}
@@ -236,118 +373,133 @@ export function TicketListPage({ onSelectTicketForAssign }) {
         isFiltered={isFiltered}
         onRetry={loadTickets}
         onClearFilter={handleClearFilters}
+        emptyMessage="Hiện không có phiếu bảo hành nào ở trạng thái chờ phân công."
       >
         {(items) => (
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider border-b border-slate-200">
-                    <th className="py-3.5 px-5">Mã phiếu & Trạng thái</th>
-                    <th className="py-3.5 px-5">Thiết bị & Khách hàng</th>
-                    <th className="py-3.5 px-5">Mô tả sự cố</th>
-                    <th className="py-3.5 px-5">Mức ưu tiên</th>
-                    <th className="py-3.5 px-5">Hạn cam kết (SLA)</th>
-                    <th className="py-3.5 px-5 text-right">Thao tác CRUD</th>
+                  <tr className="bg-slate-50/75 text-slate-500 text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
+                    <th className="py-3 px-4">Mã phiếu</th>
+                    <th className="py-3 px-4">Khách hàng</th>
+                    <th className="py-3 px-4">Thiết bị & Lỗi</th>
+                    <th className="py-3 px-4">Mức ưu tiên</th>
+                    <th className="py-3 px-4">Hạn cam kết SLA</th>
+                    <th className="py-3 px-4 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {items.map((t) => {
-                    const remainingHours = getRemainingHours(t.dueDate);
-                    const isUrgent = remainingHours <= 4;
+                    const sla = getSlaInfo(t.dueDate);
                     const isDeleting = deletingId === t.ticketId;
 
                     return (
-                      <tr key={t.ticketId} className="hover:bg-blue-50/40 transition-colors group">
-                        {/* Cột 1: Mã phiếu & Badge */}
-                        <td className="py-4 px-5">
-                          <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                      <tr
+                        key={t.ticketId}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
+                        {/* Cột 1: Mã phiếu & Trạng thái */}
+                        <td className="py-3.5 px-4 align-top">
+                          <button
+                            onClick={() => setViewingTicket(t)}
+                            className="font-mono font-bold text-blue-600 hover:text-blue-800 hover:underline"
+                            title="Xem chi tiết phiếu"
+                          >
                             {t.ticketCode}
-                          </span>
-                          <div className="mt-1.5">
+                          </button>
+                          <div className="mt-1">
                             <StatusBadge status={t.status} />
                           </div>
+                          <span className="text-[11px] text-slate-400 block mt-1">
+                            {formatDateTime(t.receivedAt)}
+                          </span>
                         </td>
 
-                        {/* Cột 2: Thiết bị & Khách hàng (Đã che SĐT theo QT-15) */}
-                        <td className="py-4 px-5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
-                              <Smartphone className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-slate-800 text-xs">{t.device?.productName || 'Thiết bị di động'}</p>
-                              <p className="text-[11px] text-slate-400 font-mono">SN: {t.device?.serialNo || 'N/A'}</p>
-                            </div>
+                        {/* Cột 2: Khách hàng */}
+                        <td className="py-3.5 px-4 align-top">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-900">{t.customer?.fullName}</span>
+                            <SegmentBadge segment={t.customer?.segment} />
                           </div>
-                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-600">
-                            <span>Khách: <strong className="text-slate-700">{t.customer?.fullName}</strong></span>
-                            {t.customer?.phone && (
-                              <span className="text-[10px] text-slate-400 font-mono flex items-center gap-0.5 bg-slate-50 px-1 rounded">
-                                <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                                {t.customer.phone}
-                              </span>
-                            )}
+                          <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-mono">
+                            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                            <span>{t.customer?.phone || 'Chưa có SĐT'}</span>
                           </div>
+                          {t.customer?.address && (
+                            <span className="text-[11px] text-slate-400 truncate block max-w-xs mt-0.5">
+                              {t.customer.address}
+                            </span>
+                          )}
                         </td>
 
-                        {/* Cột 3: Mô tả lỗi */}
-                        <td className="py-4 px-5 max-w-xs">
-                          <p className="text-slate-700 line-clamp-2 text-xs leading-relaxed" title={t.issueDesc}>
+                        {/* Cột 3: Thiết bị & Mô tả sự cố */}
+                        <td className="py-3.5 px-4 align-top max-w-xs">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-slate-800">
+                              {t.device?.productName || 'Thiết bị'}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              (SN: {t.device?.serialNo || 'N/A'})
+                            </span>
+                          </div>
+                          <p className="text-slate-600 text-[11px] mt-1 line-clamp-2 leading-relaxed" title={t.issueDesc}>
                             {t.issueDesc}
                           </p>
                           {t.category && (
-                            <span className="inline-block mt-1 text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 font-medium rounded-full">
-                              Lỗi: {t.category.categoryName}
+                            <span className="inline-block mt-1 text-[10px] font-medium text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100">
+                              {t.category.categoryName}
                             </span>
                           )}
                         </td>
 
                         {/* Cột 4: Mức ưu tiên */}
-                        <td className="py-4 px-5">
+                        <td className="py-3.5 px-4 align-top">
                           <PriorityBadge priority={t.priority} />
                         </td>
 
-                        {/* Cột 5: Hạn SLA */}
-                        <td className="py-4 px-5">
-                          <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+                        {/* Cột 5: Hạn cam kết SLA */}
+                        <td className="py-3.5 px-4 align-top">
+                          <div className="text-slate-700 font-medium flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{new Date(t.dueDate).toLocaleString('vi-VN')}</span>
+                            <span>{formatDateTime(t.dueDate)}</span>
                           </div>
                           <div className="mt-1">
-                            {isUrgent ? (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200 animate-pulse">
-                                <AlertTriangle className="w-3 h-3" />
-                                Còn ~{remainingHours}h (Khẩn cấp!)
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-slate-500 font-medium">
-                                Còn lại: ~{remainingHours} giờ
-                              </span>
-                            )}
+                            <span className={`inline-block px-1.5 py-0.5 rounded text-[11px] border ${sla.badgeClass}`}>
+                              {sla.label}
+                            </span>
                           </div>
                         </td>
 
-                        {/* Cột 6: Thao tác CRUD (Update & Delete) */}
-                        <td className="py-4 px-5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {/* Nút Phân công KTV (Update) */}
+                        {/* Cột 6: Nút thao tác */}
+                        <td className="py-3.5 px-4 align-top text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Nút Xem chi tiết */}
                             <button
-                              onClick={() => onSelectTicketForAssign(t)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm shadow-blue-500/20 transition-all hover:shadow-md active:scale-95"
+                              onClick={() => setViewingTicket(t)}
+                              title="Xem chi tiết phiếu"
+                              className="px-2 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md border border-slate-200 transition-colors text-xs font-medium"
                             >
-                              <UserCheck className="w-3.5 h-3.5" />
-                              <span>Phân công KTV</span>
+                              Chi tiết
                             </button>
 
-                            {/* Nút Hủy / Xóa phiếu bảo hành (Delete của CRUD Entity 1) */}
+                            {/* Nút Phân công KTV */}
+                            <button
+                              onClick={() => onSelectTicketForAssign(t)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium shadow-2xs transition-colors"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" />
+                              <span>Phân công</span>
+                            </button>
+
+                            {/* Nút Xóa / Hủy */}
                             <button
                               onClick={() => handleDeleteTicket(t)}
                               disabled={isDeleting}
-                              title="Hủy/Xóa phiếu tiếp nhận này (Thao tác Delete)"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition-colors disabled:opacity-50"
+                              title="Hủy tiếp nhận phiếu"
+                              className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors disabled:opacity-50"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>
@@ -358,18 +510,25 @@ export function TicketListPage({ onSelectTicketForAssign }) {
               </table>
             </div>
 
-            {/* Chân trang bảng */}
-            <div className="py-3 px-5 bg-slate-50/80 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-2">
-              <span>Đang hiển thị <strong>{items.length}</strong> phiếu bảo hành chờ điều phối tại trung tâm</span>
-              <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                <span>Ràng buộc QT-08: KTV proficiency ≥ 3</span>
-                <span>•</span>
-                <span>Ràng buộc QT-11: Cân bằng tải tối đa 8 phiếu/KTV</span>
-              </div>
+            {/* Table Footer */}
+            <div className="py-2.5 px-4 bg-slate-50/75 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
+              <span>Đang hiển thị <strong>{filteredTickets.length}</strong> / {tickets.length} phiếu</span>
+              <span className="text-[11px] text-slate-400">Dữ liệu thời gian thực TT2 Tân Bình</span>
             </div>
           </div>
         )}
       </DataState>
+
+      {/* Modal Xem chi tiết Phiếu */}
+      {viewingTicket && (
+        <TicketDetailModal
+          ticket={viewingTicket}
+          onClose={() => setViewingTicket(null)}
+          onAssign={(ticket) => onSelectTicketForAssign(ticket)}
+        />
+      )}
     </div>
   );
 }
+
+export default TicketListPage;
