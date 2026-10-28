@@ -34,3 +34,12 @@
 - **Thay đổi gì:** Xây dựng module `src/api/client.js` và các hàm API chuyên biệt (`tickets.api.js`, `technicians.api.js`), cấm gọi `fetch`/`axios` trực tiếp trong components; xây dựng component `DataState.jsx` xử lý tập trung 3 trạng thái: Đang tải (Loading), Rỗng (Empty - phân biệt rỗng dữ liệu và rỗng do bộ lọc), Lỗi (Error có nút thử lại).
 - **Vì sao:** Tuân thủ chuẩn mực thiết kế Buổi 9–10 của học phần Track SE; nâng cao trải nghiệm người dùng, đảm bảo kiểm thử và mở rộng dễ dàng mà không làm phân tán mã nguồn gọi mạng.
 - **Ảnh hưởng tới thành phần nào:** Thư mục `frontend/src/api/`, `frontend/src/components/`, `frontend/src/pages/`, `README.md`.
+
+---
+
+### Thay đổi 5: Chuẩn hóa bộ Endpoint RESTful và bổ sung đầy đủ 4 thao tác CRUD cho 2 thực thể độc lập
+
+- **Thay đổi gì:** Chuẩn hóa đường dẫn API từ `/api/technicians/me/tickets` thành `/api/tickets/technician/mine`, gộp logic điều chuyển vào `POST /api/tickets/:id/assign` (hỗ trợ cả phân công lần đầu và điều chuyển), tích hợp endpoint gợi ý KTV kèm tính sẵn khối lượng tải `GET /api/technicians/candidates-for-ticket/:ticketId`, và bổ sung đầy đủ 4 thao tác CRUD (POST, GET, PUT, DELETE) cho cả 2 thực thể `Ticket` và `Technician`.
+- **Vì sao:** Tuân thủ quy chuẩn thiết kế RESTful định hướng tài nguyên (Resource-Oriented), tối ưu hóa luồng giao diện Quản lý chọn KTV đạt chuẩn trong <= 3 click (đáp ứng NFR4), và thỏa mãn trực tiếp tiêu chí kỹ thuật bắt buộc S1 của Đề bài Bài tập 2 Track SE.
+- **Ảnh hưởng tới thành phần nào:** `docs/api-contract.md`, `src/routes/ticket.routes.js`, `src/routes/technician.routes.js`, `src/services/ticket.service.js`, `src/services/technician.service.js`, `frontend/src/api/`.
+
