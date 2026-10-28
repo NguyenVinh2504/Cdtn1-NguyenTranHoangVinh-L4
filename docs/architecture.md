@@ -205,6 +205,28 @@ ERD cho luồng L4 gồm **6 bảng**, đạt mục kiểm chứng SE (4–6 b�
 
 **Tên bảng và cột:** snake_case, khớp bảng thuật ngữ trong SRS mục 1.4.
 
+### 4.1.1. Chú thích ký hiệu sơ đồ ERD (Notation Legend)
+
+| Ký hiệu | Tên gọi | Ý nghĩa và Quy ước kỹ thuật trong thiết kế CSDL |
+|:-------:|:--------|:------------------------------------------------|
+| **`PK`** | Primary Key | Khóa chính của bảng (định danh duy nhất mỗi bản ghi, kiểu `BIGSERIAL`/`SERIAL`, tự tăng, ràng buộc `NOT NULL`, có chỉ mục B-Tree UNIQUE mặc định). |
+| **`FK`** | Foreign Key | Khóa ngoại tham chiếu đến khóa chính của bảng khác (đảm bảo tính toàn vẹn tham chiếu `ON DELETE RESTRICT` để ngăn xóa dữ liệu cha khi còn dữ liệu con). |
+| **`1 — N`** | One-to-Many | Quan hệ Một - Nhiều: Một bản ghi ở bảng cha có thể liên kết với 0, 1 hoặc nhiều bản ghi ở bảng con (ví dụ: `1` Khách hàng có `N` Thiết bị / Phiếu; `1` Kỹ thuật viên xử lý `N` Phiếu). |
+| **`1 — 1`** | One-to-One | Quan hệ Một - Một: Mỗi bản ghi ở bảng này liên kết tối đa với một bản ghi ở bảng kia. |
+| **`o──<` / `\|\|--o{`** | Ký pháp Crow's Foot | Biểu diễn quan hệ: vòng tròn `o` đại diện cho tính tùy chọn (Optional / Zero), vạch thẳng `\|` đại diện cho tính bắt buộc (Mandatory / One), chân quạ `{` đại diện cho Nhiều (Many). |
+| **`UNIQUE`** | Ràng buộc duy nhất | Đảm bảo giá trị của trường không được phép trùng lặp trong toàn bộ bảng (`ticket_code`, `serial_no`, `phone`). |
+| **`CHECK`** | Ràng buộc kiểm tra | Quy tắc nghiệp vụ kiểm tra tính hợp lệ dữ liệu ngay tại CSDL (`proficiency BETWEEN 1 AND 5`, `length(issue_desc) >= 10`). |
+| **`JSONB`** | Document-in-Row | Cột dữ liệu phi cấu trúc lưu trữ mảng JSON nhị phân (`status_history`), có chỉ mục `GIN` để truy vấn hiệu năng cao đáp ứng NFR1. |
+
+#### Danh mục các mối quan hệ (Relationships) giữa 6 bảng thực thể:
+1. **`customer` (1) ── (N) `device`**: Một khách hàng sở hữu một hoặc nhiều thiết bị (`device.customer_id → customer.customer_id`, quan hệ 1-N bắt buộc).
+2. **`customer` (1) ── (N) `ticket`**: Một khách hàng có thể có nhiều phiếu bảo hành qua các lần mang máy đến sửa (`ticket.customer_id → customer.customer_id`, quan hệ 1-N bắt buộc).
+3. **`device` (1) ── (N) `ticket`**: Một thiết bị có thể có nhiều lần tiếp nhận bảo hành theo vòng đời máy (`ticket.device_id → device.device_id`, quan hệ 1-N bắt buộc).
+4. **`service_center` (1) ── (N) `technician`**: Một trung tâm bảo hành có nhiều KTV trực thuộc làm việc (`technician.center_id → service_center.center_id`, quan hệ 1-N bắt buộc).
+5. **`service_center` (1) ── (N) `ticket`**: Một trung tâm bảo hành tiếp nhận và xử lý nhiều phiếu bảo hành (`ticket.center_id → service_center.center_id`, quan hệ 1-N bắt buộc).
+6. **`issue_category` (1) ── (N) `ticket`**: Một nhóm danh mục sự cố được gán cho nhiều phiếu bảo hành (`ticket.category_id → issue_category.category_id`, quan hệ 1-N tùy chọn nếu chưa phân loại).
+7. **`technician` (1) ── (N) `ticket`**: Một KTV có thể được phân công xử lý nhiều phiếu; tại một thời điểm mỗi phiếu chỉ được gán cho tối đa 1 KTV (`ticket.technician_id → technician.technician_id`, quan hệ 1-N tùy chọn: `NULL` khi phiếu mới tiếp nhận chưa phân công).
+
 ---
 
 ## 4.2. BẢNG LIÊN HỆ GIỮA BẢNG VÀ YÊU CẦU CHỨC NĂNG

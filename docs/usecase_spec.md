@@ -25,7 +25,7 @@
 | **UC4** | Đặt lịch hẹn giao - nhận máy | Quản lý trung tâm | FR4 | US4 | **SHOULD** |
 | **UC5** | Giám sát tải công việc kỹ thuật viên | Quản lý trung tâm | FR5 | US5 | **SHOULD** |
 | **UC6** | Cập nhật tiến độ và trạng thái phiếu | Kỹ thuật viên | FR6 | US6 | **SHOULD** |
-| **UC7** | Điều chuyển phiếu sang kỹ thuật viên khác | Quản lý trung tâm | FR7 | US8 | **COULD** |
+| **UC7** | Điều chuyển phiếu sang kỹ thuật viên khác | Quản lý trung tâm | FR7 | US2 | **COULD** |
 | **UC8** | Xem lịch hẹn cá nhân trong ngày | Kỹ thuật viên | FR8 | US7 | **COULD** |
 | **UC9** | Kiểm tra xung đột trùng lịch hẹn | *(System)* | FR4 | US4 | **<<include>>** |
 
@@ -252,7 +252,7 @@
 | **Mục tiêu** | Thay đổi KTV xử lý phiếu kèm lý do bắt buộc (QT-07) |
 | **Điều kiện trước** | QLTT đã đăng nhập; phiếu đang ở trạng thái `DA_PHAN_CONG` hoặc `DANG_XU_LY` |
 | **Điều kiện sau** | `technician_id` được thay đổi; phần tử mới trong `status_history` ghi nhận lý do (`note`) |
-| **Liên quan** | `US8` | **Yêu cầu chức năng** | `FR7` | **Mức ưu tiên** | **COULD** |
+| **Liên quan** | `US2` (mở rộng luồng điều chuyển) | **Yêu cầu chức năng** | `FR7` | **Mức ưu tiên** | **COULD** |
 | **Quan hệ** | `<<extend>>` UC2 (mở rộng từ phân công) |
 
 ### Luồng chính

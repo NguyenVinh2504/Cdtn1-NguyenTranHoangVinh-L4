@@ -43,3 +43,11 @@
 - **Vì sao:** Tuân thủ quy chuẩn thiết kế RESTful định hướng tài nguyên (Resource-Oriented), tối ưu hóa luồng giao diện Quản lý chọn KTV đạt chuẩn trong <= 3 click (đáp ứng NFR4), và thỏa mãn trực tiếp tiêu chí kỹ thuật bắt buộc S1 của Đề bài Bài tập 2 Track SE.
 - **Ảnh hưởng tới thành phần nào:** `docs/api-contract.md`, `src/routes/ticket.routes.js`, `src/routes/technician.routes.js`, `src/services/ticket.service.js`, `src/services/technician.service.js`, `frontend/src/api/`.
 
+---
+
+### Thay đổi 6: Tinh gọn danh sách User Story từ 8 xuống đúng 7 câu (Gộp tính năng Điều chuyển vào Phân công)
+
+- **Thay đổi gì:** Gộp User Story US8 (Điều chuyển kỹ thuật viên) vào US2 (Phân công kỹ thuật viên), cập nhật phát biểu US2 thành *"Là Quản lý trung tâm, tôi muốn phân công hoặc điều chuyển kỹ thuật viên có đủ năng lực chuyên môn (proficiency >= 3) và cùng trung tâm cho phiếu bảo hành (kèm lý do bắt buộc khi điều chuyển)..."*; loại bỏ mã US8 độc lập để tổng danh sách User Story đạt đúng chuẩn 7 câu (khớp khung gợi ý 5–7 của Đề bài); đồng thời bổ sung tiêu chí chấp nhận AC2.4 và cập nhật ma trận truy vết Traceability Matrix.
+- **Vì sao:** Tiếp thu phản hồi chấm điểm Bài tập 1 về việc số lượng User Story vượt khung quy định (8 US so với yêu cầu 5–7); đồng thời phản ánh chính xác kiến trúc mã nguồn và API của Bài tập 2 khi thao tác phân công lần đầu và điều chuyển đã được gộp chung vào một endpoint duy nhất `POST /api/tickets/:id/assign` (đã nêu tại Thay đổi 5).
+- **Ảnh hưởng tới thành phần nào:** `docs/srs.md` (mục 3.2 bảng User Story, mục 3.3 tiêu chí AC2.4, mục 6 bảng Traceability Matrix), `docs/usecase_spec.md` (mục bảng tổng quan UC và liên kết US2/UC7), `docs/architecture.md`.
+

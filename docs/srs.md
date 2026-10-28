@@ -85,18 +85,17 @@ _Mỗi yêu cầu chức năng đều phát biểu dưới dạng kiểm chứng
 
 ---
 
-### 3.2. Danh sách 8 User Story chuẩn INVEST và Mức ưu tiên MoSCoW
+### 3.2. Danh sách 7 User Story chuẩn INVEST và Mức ưu tiên MoSCoW
 
 | Mã US   | Phát biểu User Story (Khuôn chuẩn)                                                                                                                                                                                                          | Mức MoSCoW | Liên kết FR |
 |:------- |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |:----------:|:-----------:|
 | **US1** | **Là** Quản lý trung tâm, **tôi muốn** xem danh sách các phiếu bảo hành chưa phân công thuộc trung tâm mình **để** nắm bắt kịp thời khối lượng công việc tồn đọng và bố trí nhân sự xử lý, không để phiếu bị bỏ quên.                       | **MUST**   | FR1         |
-| **US2** | **Là** Quản lý trung tâm, **tôi muốn** phân công kỹ thuật viên có tay nghề phù hợp và cùng trung tâm cho phiếu bảo hành **để** phiếu được xử lý đúng chuyên môn ngay từ đầu, giảm thiểu việc chuyển qua lại và rút ngắn thời gian sửa chữa. | **MUST**   | FR2         |
+| **US2** | **Là** Quản lý trung tâm, **tôi muốn** phân công hoặc điều chuyển kỹ thuật viên có đủ năng lực chuyên môn (`proficiency >= 3`) và cùng trung tâm cho phiếu bảo hành (kèm lý do bắt buộc khi điều chuyển) **để** phiếu được xử lý đúng chuyên môn ngay từ đầu, giảm thiểu việc chuyển qua lại và lưu vết minh bạch. | **MUST**   | FR2, FR7    |
 | **US3** | **Là** Kỹ thuật viên, **tôi muốn** xem danh sách các phiếu bảo hành được gán cho mình sắp xếp theo hạn cam kết (SLA) **để** biết rõ mức độ khẩn cấp và ưu tiên xử lý các phiếu sắp hết hạn trước, tránh trễ hẹn với khách.                  | **MUST**   | FR3         |
 | **US4** | **Là** Quản lý trung tâm, **tôi muốn** đặt lịch hẹn giao – nhận máy giữa kỹ thuật viên và khách hàng có kiểm tra trùng lịch **để** tránh xung đột khung giờ làm việc của kỹ thuật viên và khách hàng không phải chờ đợi lâu.                | **SHOULD** | FR4         |
 | **US5** | **Là** Quản lý trung tâm, **tôi muốn** xem khối lượng công việc hiện tại của từng kỹ thuật viên trong trung tâm **để** phân bổ đều công việc, tránh tình trạng người quá tải (40 phiếu) người nhàn rỗi (12 phiếu).                          | **SHOULD** | FR5         |
 | **US6** | **Là** Kỹ thuật viên, **tôi muốn** cập nhật tiến độ và chuyển trạng thái phiếu bảo hành theo đúng quy trình **để** minh bạch tiến trình sửa chữa, ghi nhận lịch sử xử lý và làm cơ sở thông báo cho khách hàng nhận máy.                    | **SHOULD** | FR6         |
 | **US7** | **Là** Kỹ thuật viên, **tôi muốn** xem lịch hẹn tiếp khách trong ngày của bản thân **để** chủ động chuẩn bị công cụ, linh kiện và sắp xếp thời gian làm việc tại bàn kỹ thuật hợp lý.                                                       | **COULD**  | FR8         |
-| **US8** | **Là** Quản lý trung tâm, **tôi muốn** điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do bắt buộc **để** xử lý linh hoạt khi kỹ thuật viên ban đầu quá tải hoặc vắng mặt đột xuất mà vẫn lưu vết minh bạch.                      | **COULD**  | FR7         |
 
 ---
 
@@ -131,6 +130,10 @@ _Mỗi yêu cầu chức năng đều phát biểu dưới dạng kiểm chứng
   - **GIVEN** Kỹ thuật viên Lê Văn C thuộc trung tâm ID = 1; Phiếu bảo hành thuộc trung tâm ID = 2.
   - **WHEN** Quản lý gửi yêu cầu phân công Kỹ thuật viên Lê Văn C cho phiếu này.
   - **THEN** Hệ thống từ chối thực hiện, trả về lỗi HTTP 400 Bad Request kèm thông báo _"Không thể phân công kỹ thuật viên không thuộc trung tâm tiếp nhận"_ (QT-08).
+- **AC2.4 (Luồng điều chuyển - Bắt buộc nhập lý do khi điều chuyển kỹ thuật viên):**
+  - **GIVEN** Phiếu BH-000231 đang được phân công cho Kỹ thuật viên Nguyễn Văn A (`technician_id` = 5).
+  - **WHEN** Quản lý thực hiện điều chuyển sang Kỹ thuật viên mới Đặng Văn D (`technician_id` = 8, có điểm tay nghề `proficiency` = 4 ≥ 3) và nhập lý do: "KTV ban đầu quá tải".
+  - **THEN** Hệ thống cập nhật `technician_id = 8`, tự động append bản ghi chuyển trạng thái/điều chuyển vào mảng JSONB `status_history` kèm trường `note = 'KTV ban đầu quá tải'`, và thông báo "Điều chuyển kỹ thuật viên thành công" (QT-06, QT-07, QT-08).
 
 #### US3: Kỹ thuật viên xem danh sách phiếu được gán theo hạn cam kết SLA (MUST)
 
@@ -187,5 +190,5 @@ _Bảng đối chiếu xuyên suốt giữa Yêu cầu chức năng ↔ User Sto
 | **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | `TC_FR4_01`, `TC_FR4_02`              |
 | **FR5** | Giám sát và thống kê khối lượng công việc hiện tại của kỹ thuật viên  | **US5**              | **UC5**            | **SHOULD** | `TC_FR5_01`                           |
 | **FR6** | Cập nhật tiến độ và ghi nhận chuyển trạng thái phiếu bảo hành         | **US6**              | **UC6**            | **SHOULD** | `TC_FR6_01`, `TC_FR6_02`              |
-| **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US8**              | **UC7**            | **COULD**  | `TC_FR7_01`, `TC_FR7_02`              |
+| **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US2**              | **UC7**            | **COULD**  | `TC_FR7_01`, `TC_FR7_02`              |
 | **FR8** | Xem danh sách lịch hẹn giao nhận cá nhân trong ngày của kỹ thuật viên | **US7**              | **UC8**            | **COULD**  | `TC_FR8_01`                           |
