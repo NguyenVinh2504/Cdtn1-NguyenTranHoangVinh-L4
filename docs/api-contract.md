@@ -207,14 +207,14 @@
     }
   }
   ```
-- **`HTTP 422 Unprocessable Entity`:** Kỹ thuật viên không đạt yêu cầu tay nghề bậc 3 trở lên đối với nhóm sự cố của phiếu (QT-08).
+- **`HTTP 422 Unprocessable Entity`:** Kỹ thuật viên không đạt yêu cầu tay nghề bậc 3 trở lên (QT-08).
   ```json
   {
     "error": {
       "code": "INSUFFICIENT_SKILL",
       "message": "Kỹ thuật viên không đủ điều kiện chuyên môn để nhận phiếu này",
       "fields": {
-        "proficiency": "Điểm tay nghề thực tế là 2/5, yêu cầu tối thiểu là 3/5 cho nhóm MAN_HINH (QT-08)"
+        "proficiency": "Điểm tay nghề thực tế là 2/5, yêu cầu tối thiểu là 3/5 (QT-08)"
       }
     }
   }

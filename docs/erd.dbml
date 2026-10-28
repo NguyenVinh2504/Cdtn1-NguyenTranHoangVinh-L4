@@ -51,7 +51,7 @@ Table issue_category [headercolor: #7B1FA2] {
   default_priority varchar(10) [not null, note: 'CAO / TRUNG_BINH / THAP']
   is_active boolean [not null, default: true]
 
-  Note: 'Danh mục nhóm sự cố – dùng để phân loại phiếu. QT-08 dùng kèm với proficiency của KTV.'
+  Note: 'Danh mục nhóm sự cố – dùng để phân loại phiếu. Dùng để tính thời hạn SLA theo QT-04.'
 }
 
 // =============================================================================

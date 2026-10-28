@@ -73,7 +73,7 @@
 | **Actor chính** | Quản lý trung tâm (`Center Manager`) |
 | **Mục tiêu** | Giao phiếu bảo hành cho một kỹ thuật viên có đủ năng lực (proficiency ≥ 3) và cùng trung tâm |
 | **Điều kiện trước** | 1. QLTT đã đăng nhập. <br>2. Phiếu đang ở trạng thái `MOI`. |
-| **Điều kiện sau** | 1. `technician_id` được gán.<br>2. `status = 'DA_PHAN_CONG'`.<br>3. Bản ghi `ticket_status_log` được tạo. |
+| **Điều kiện sau** | 1. `technician_id` được gán.<br>2. `status = 'DA_PHAN_CONG'`.<br>3. Mảng `status_history` (JSONB) của phiếu được append bản ghi chuyển trạng thái từ `MOI` sang `DA_PHAN_CONG`. |
 | **Liên quan** | `US2` | **Yêu cầu chức năng** | `FR2` | **Mức ưu tiên** | **MUST** |
 
 ### Luồng chính
@@ -82,20 +82,20 @@
 2. Hệ thống hiển thị danh sách kỹ thuật viên thỏa điều kiện:
    - `is_active = true`
    - `center_id = center_id của phiếu`
-   - `proficiency >= 3` với `category_id` của phiếu (QT-08)
+   - `proficiency >= 3` (QT-08)
 3. Kèm theo `workload` (số phiếu đang xử lý) của từng KTV để QLTT cân nhắc.
 4. Quản lý chọn kỹ thuật viên và bấm **"Xác nhận phân công"**.
 5. Hệ thống mở **Database Transaction (ACID)** và thực hiện:
    - Cập nhật `technician_id = ID_KTV_chọn`
    - Cập nhật `status = 'DA_PHAN_CONG'`
-   - Chèn bản ghi `ticket_status_log` (`from_status = 'MOI'`, `to_status = 'DA_PHAN_CONG'`)
+   - Append bản ghi `{from: 'MOI', to: 'DA_PHAN_CONG', at: now(), by: ID_KTV_chọn}` vào mảng `status_history` (JSONB)
    - Commit transaction
 6. Hệ thống hiển thị thông báo thành công và cập nhật danh sách.
 
 ### Luồng ngoại lệ
 
 - **2a. Không có KTV nào đủ điều kiện (proficiency ≥ 3):**
-  → Hệ thống hiển thị cảnh báo: *"Không có kỹ thuật viên nào đạt chuẩn tay nghề cho nhóm sự cố này."*
+  → Hệ thống hiển thị cảnh báo: *"Không có kỹ thuật viên nào tại trung tâm đạt chuẩn tay nghề (proficiency >= 3)."*
   → Đề xuất: chuyển phiếu sang trung tâm khác hoặc phê duyệt đặc cách.
 
 - **3a. Tất cả KTV đủ tay nghề đều quá tải (workload > 20 phiếu):**

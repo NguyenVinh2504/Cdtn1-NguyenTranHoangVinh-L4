@@ -1,0 +1,222 @@
+<mxfile host="app.diagrams.net" agent="Antigravity" modified="2026-10-28T15:05:00.000Z" version="24.0.0">
+  <diagram id="usecase-l4-smart-crm" name="Use Case - Luồng L4 Phân công KTV &amp; Lịch hẹn">
+    <mxGraphModel dx="1600" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1450" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- RANH GIOI HE THONG - SYSTEM BOUNDARY -->
+        <mxCell id="boundary" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;&lt;b&gt;Hệ thống Smart CRM: Phân công kỹ thuật viên &amp;amp; Lịch hẹn (Luồng L4)&lt;/b&gt;&lt;/font&gt;" style="shape=rect;html=1;whiteSpace=wrap;align=center;verticalAlign=top;fontFamily=Helvetica;fillColor=#F8FAFC;strokeColor=#1D4ED8;strokeWidth=2.5;dashed=0;fontColor=#0F172A;spacingTop=16;rounded=1;arcSize=2;" vertex="1" parent="1">
+          <mxGeometry x="230" y="40" width="830" height="950" as="geometry" />
+        </mxCell>
+
+        <!-- ACTORS NGOAI RANH GIOI HE THONG -->
+        
+        <!-- ACTOR: Quan ly trung tam -->
+        <mxCell id="actor_qltt" value="&lt;b&gt;Quản lý trung tâm&lt;/b&gt;&lt;br&gt;&amp;laquo;Actor chính&amp;raquo;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DBEAFE;strokeColor=#1D4ED8;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="65" y="150" width="50" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Ghi chu cho Quan ly trung tam -->
+        <mxCell id="note_qltt" value="&lt;b&gt;Quản lý trung tâm:&lt;/b&gt;&lt;br&gt;• Xem phiếu chờ phân công&lt;br&gt;• Phân công KTV hợp lệ (QT-08)&lt;br&gt;• Đặt lịch hẹn&lt;br&gt;• Giám sát tải công việc&lt;br&gt;• Điều chuyển KTV" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fillColor=#EFF6FF;strokeColor=#3B82F6;strokeWidth=1.5;fontSize=11;fontFamily=Helvetica;fontColor=#1E3A8A;spacingLeft=8;spacingTop=6;spacingRight=6;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="280" width="180" height="115" as="geometry" />
+        </mxCell>
+
+        <!-- Duong noi note QLTT -->
+        <mxCell id="edge_note_qltt" edge="1" parent="1" source="note_qltt" target="actor_qltt" style="endArrow=none;dashed=1;html=1;strokeColor=#93C5FD;strokeWidth=1.2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ACTOR: Ky thuat vien -->
+        <mxCell id="actor_ktv" value="&lt;b&gt;Kỹ thuật viên&lt;/b&gt;&lt;br&gt;&amp;laquo;Actor chính&amp;raquo;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#DBEAFE;strokeColor=#1D4ED8;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="65" y="630" width="50" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Ghi chu cho Ky thuat vien -->
+        <mxCell id="note_ktv" value="&lt;b&gt;Kỹ thuật viên:&lt;/b&gt;&lt;br&gt;• Xem phiếu được gán (theo SLA)&lt;br&gt;• Cập nhật trạng thái phiếu&lt;br&gt;• Xem lịch hẹn cá nhân" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fillColor=#EFF6FF;strokeColor=#3B82F6;strokeWidth=1.5;fontSize=11;fontFamily=Helvetica;fontColor=#1E3A8A;spacingLeft=8;spacingTop=6;spacingRight=6;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="760" width="180" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Duong noi note KTV -->
+        <mxCell id="edge_note_ktv" edge="1" parent="1" source="note_ktv" target="actor_ktv" style="endArrow=none;dashed=1;html=1;strokeColor=#93C5FD;strokeWidth=1.2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ACTOR: He thong nhac han (Thoi gian) -->
+        <mxCell id="actor_htnh" value="&lt;b&gt;Hệ thống nhắc hạn&lt;/b&gt;&lt;br&gt;(Thời gian)&lt;br&gt;&amp;laquo;Actor hệ thống&amp;raquo;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FEF3C7;strokeColor=#D97706;strokeWidth=2;fontSize=11;fontFamily=Helvetica;fontColor=#92400E;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="620" width="50" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Ghi chu cho He thong nhac han -->
+        <mxCell id="note_htnh" value="&lt;b&gt;Hệ thống nhắc hạn:&lt;/b&gt;&lt;br&gt;• Gửi cảnh báo phiếu &amp;lt; 4h" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fillColor=#FFFBEB;strokeColor=#F59E0B;strokeWidth=1.5;fontSize=11;fontFamily=Helvetica;fontColor=#78350F;spacingLeft=8;spacingTop=6;spacingRight=6;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1135" y="750" width="160" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Duong noi note HTNH -->
+        <mxCell id="edge_note_htnh" edge="1" parent="1" source="note_htnh" target="actor_htnh" style="endArrow=none;dashed=1;html=1;strokeColor=#FCD34D;strokeWidth=1.2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- USE CASES TRONG HE THONG -->
+
+        <!-- UC1: Xem phieu cho phan cong - MUST -->
+        <mxCell id="uc1" value="&lt;b&gt;UC1:&lt;/b&gt; Xem danh sách phiếu&lt;br&gt;chờ phân công&lt;br&gt;&lt;font color=&quot;#1D4ED8&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[MUST]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1D4ED8;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="270" y="90" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- UC2: Phan cong KTV cho phieu - MUST trong tam -->
+        <mxCell id="uc2" value="&lt;b&gt;UC2:&lt;/b&gt; Phân công kỹ thuật viên&lt;br&gt;cho phiếu bảo hành&lt;br&gt;&lt;font color=&quot;#1D4ED8&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[MUST - TRỌNG TÂM]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#1D4ED8;strokeWidth=3;fontSize=12;fontFamily=Helvetica;fontColor=#1E3A8A;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="270" y="200" width="230" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- UC7: Dieu chuyen KTV - COULD -->
+        <mxCell id="uc7" value="&lt;b&gt;UC7:&lt;/b&gt; Điều chuyển phiếu&lt;br&gt;sang kỹ thuật viên khác&lt;br&gt;&lt;font color=&quot;#475569&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[COULD]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#64748B;strokeWidth=1.8;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="640" y="200" width="220" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Ghi chu cho UC7 -->
+        <mxCell id="note_uc7" value="&lt;b&gt;&amp;laquo;extend&amp;raquo;:&lt;/b&gt;&lt;br&gt;UC7 chỉ xảy ra khi cần&lt;br&gt;điều chuyển KTV khác&lt;br&gt;(có lý do bắt buộc)" style="shape=note;whiteSpace=wrap;html=1;size=12;verticalAlign=top;align=left;fillColor=#F8FAFC;strokeColor=#94A3B8;strokeWidth=1.2;fontSize=10;fontFamily=Helvetica;fontColor=#334155;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="660" y="100" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_note_uc7" edge="1" parent="1" source="note_uc7" target="uc7" style="endArrow=none;dashed=1;html=1;strokeColor=#CBD5E1;strokeWidth=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC4: Dat lich hen - SHOULD -->
+        <mxCell id="uc4" value="&lt;b&gt;UC4:&lt;/b&gt; Đặt lịch hẹn&lt;br&gt;giao - nhận máy&lt;br&gt;&lt;font color=&quot;#0369A1&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[SHOULD]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="270" y="325" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- UC9: Kiem tra trung lich - include -->
+        <mxCell id="uc9" value="&lt;b&gt;UC9:&lt;/b&gt; Kiểm tra xung đột&lt;br&gt;trùng lịch hẹn&lt;br&gt;&lt;font color=&quot;#DC2626&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[&amp;laquo;include&amp;raquo;]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FEF2F2;strokeColor=#EF4444;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#991B1B;" vertex="1" parent="1">
+          <mxGeometry x="640" y="325" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Ghi chu cho UC4 va UC9 -->
+        <mxCell id="note_uc4" value="&lt;b&gt;&amp;laquo;include&amp;raquo;:&lt;/b&gt;&lt;br&gt;UC4 luôn gọi UC9&lt;br&gt;(kiểm tra trùng lịch hẹn&lt;br&gt;là bước bắt buộc)" style="shape=note;whiteSpace=wrap;html=1;size=12;verticalAlign=top;align=left;fillColor=#FEF2F2;strokeColor=#F87171;strokeWidth=1.2;fontSize=10;fontFamily=Helvetica;fontColor=#991B1B;spacingLeft=6;spacingTop=4;" vertex="1" parent="1">
+          <mxGeometry x="660" y="425" width="180" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_note_uc4" edge="1" parent="1" source="note_uc4" target="rel_include_uc4_uc9" style="endArrow=none;dashed=1;html=1;strokeColor=#FCA5A5;strokeWidth=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC5: Giam sat tai cong viec - SHOULD -->
+        <mxCell id="uc5" value="&lt;b&gt;UC5:&lt;/b&gt; Giám sát tải công việc&lt;br&gt;kỹ thuật viên&lt;br&gt;&lt;font color=&quot;#0369A1&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[SHOULD]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="270" y="450" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- UC3: Xem phieu theo SLA - MUST trong tam -->
+        <mxCell id="uc3" value="&lt;b&gt;UC3:&lt;/b&gt; Xem danh sách phiếu&lt;br&gt;được gán theo hạn SLA&lt;br&gt;&lt;font color=&quot;#1D4ED8&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[MUST - TRỌNG TÂM]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#1D4ED8;strokeWidth=3;fontSize=12;fontFamily=Helvetica;fontColor=#1E3A8A;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="270" y="635" width="230" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- UC6: Cap nhat trang thai phieu - SHOULD -->
+        <mxCell id="uc6" value="&lt;b&gt;UC6:&lt;/b&gt; Cập nhật tiến độ&lt;br&gt;và trạng thái phiếu&lt;br&gt;&lt;font color=&quot;#0369A1&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[SHOULD]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0284C7;strokeWidth=2;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="270" y="760" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- UC8: Xem lich hen ca nhan - COULD -->
+        <mxCell id="uc8" value="&lt;b&gt;UC8:&lt;/b&gt; Xem lịch hẹn&lt;br&gt;cá nhân trong ngày&lt;br&gt;&lt;font color=&quot;#475569&quot; style=&quot;font-size:10px;&quot;&gt;&lt;b&gt;[COULD]&lt;/b&gt;&lt;/font&gt;" style="ellipse;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#64748B;strokeWidth=1.8;fontSize=12;fontFamily=Helvetica;fontColor=#0F172A;" vertex="1" parent="1">
+          <mxGeometry x="270" y="875" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- QUAN HE INCLUDE / EXTEND GIUA CAC UC -->
+
+        <!-- UC4 include UC9 -->
+        <mxCell id="rel_include_uc4_uc9" edge="1" parent="1" source="uc4" target="uc9" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;dashed=1;strokeColor=#DC2626;strokeWidth=2;fontColor=#DC2626;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;" value="&amp;laquo;include&amp;raquo;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC7 extend UC2 -->
+        <mxCell id="rel_extend_uc7_uc2" edge="1" parent="1" source="uc7" target="uc2" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;dashed=1;strokeColor=#1D4ED8;strokeWidth=2;fontColor=#1D4ED8;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;" value="&amp;laquo;extend&amp;raquo;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC2 include UC1 -->
+        <mxCell id="rel_include_uc2_uc1" edge="1" parent="1" source="uc2" target="uc1" style="html=1;verticalAlign=bottom;endArrow=open;endSize=8;dashed=1;strokeColor=#1D4ED8;strokeWidth=2;fontColor=#1D4ED8;fontSize=11;fontStyle=1;labelBackgroundColor=#FFFFFF;" value="&amp;laquo;include&amp;raquo;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- LIEN KET ACTOR VOI USE CASES -->
+
+        <!-- Quan ly trung tam den UC1 -->
+        <mxCell id="edge_qltt_uc1" edge="1" parent="1" source="actor_qltt" target="uc1" style="endArrow=none;html=1;strokeColor=#1D4ED8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Quan ly trung tam den UC2 -->
+        <mxCell id="edge_qltt_uc2" edge="1" parent="1" source="actor_qltt" target="uc2" style="endArrow=none;html=1;strokeColor=#1D4ED8;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Quan ly trung tam den UC4 -->
+        <mxCell id="edge_qltt_uc4" edge="1" parent="1" source="actor_qltt" target="uc4" style="endArrow=none;html=1;strokeColor=#1D4ED8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Quan ly trung tam den UC5 -->
+        <mxCell id="edge_qltt_uc5" edge="1" parent="1" source="actor_qltt" target="uc5" style="endArrow=none;html=1;strokeColor=#1D4ED8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Quan ly trung tam den UC7 -->
+        <mxCell id="edge_qltt_uc7" edge="1" parent="1" source="actor_qltt" target="uc7" style="endArrow=none;html=1;strokeColor=#64748B;strokeWidth=1.8;edgeStyle=orthogonalEdgeStyle;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="195" />
+              <mxPoint x="160" y="50" />
+              <mxPoint x="750" y="50" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Ky thuat vien den UC3 -->
+        <mxCell id="edge_ktv_uc3" edge="1" parent="1" source="actor_ktv" target="uc3" style="endArrow=none;html=1;strokeColor=#1D4ED8;strokeWidth=2.5;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Ky thuat vien den UC6 -->
+        <mxCell id="edge_ktv_uc6" edge="1" parent="1" source="actor_ktv" target="uc6" style="endArrow=none;html=1;strokeColor=#1D4ED8;strokeWidth=2;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Ky thuat vien den UC8 -->
+        <mxCell id="edge_ktv_uc8" edge="1" parent="1" source="actor_ktv" target="uc8" style="endArrow=none;html=1;strokeColor=#64748B;strokeWidth=1.8;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- He thong nhac han den UC3 -->
+        <mxCell id="edge_htnh_uc3" edge="1" parent="1" source="actor_htnh" target="uc3" style="endArrow=none;html=1;strokeColor=#D97706;strokeWidth=2.2;dashed=1;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- GHI CHU NGOAI SO DO -->
+
+        <!-- Note MoSCoW -->
+        <mxCell id="note_moscow" value="&lt;b style=&quot;font-size:12px; color:#1E3A8A;&quot;&gt;Phân loại MoSCoW:&lt;/b&gt;&lt;br&gt;• &lt;b&gt;MUST:&lt;/b&gt; UC1, UC2, UC3&lt;br&gt;• &lt;b&gt;SHOULD:&lt;/b&gt; UC4, UC5, UC6&lt;br&gt;• &lt;b&gt;COULD:&lt;/b&gt; UC7, UC8" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fillColor=#EFF6FF;strokeColor=#3B82F6;strokeWidth=1.5;fontSize=11;fontFamily=Helvetica;fontColor=#1E3A8A;spacingLeft=8;spacingTop=6;spacingRight=6;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="80" width="210" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_note_moscow" edge="1" parent="1" source="note_moscow" target="uc2" style="endArrow=none;dashed=1;html=1;strokeColor=#93C5FD;strokeWidth=1.2;edgeStyle=orthogonalEdgeStyle;curved=1;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="130" />
+              <mxPoint x="940" y="130" />
+              <mxPoint x="940" y="235" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Note Rang buoc nghiep vu -->
+        <mxCell id="note_rules" value="&lt;b style=&quot;font-size:12px; color:#78350F;&quot;&gt;Ràng buộc nghiệp vụ:&lt;/b&gt;&lt;br&gt;• &lt;b&gt;QT-06:&lt;/b&gt; Vòng đời trạng thái phiếu&lt;br&gt;• &lt;b&gt;QT-07:&lt;/b&gt; 1 phiếu = 1 KTV xử lý&lt;br&gt;• &lt;b&gt;QT-08:&lt;/b&gt; KTV đủ tay nghề (skill &amp;ge; 3)&lt;br&gt;  và cùng trung tâm bảo hành&lt;br&gt;• &lt;b&gt;QT-13:&lt;/b&gt; Không xóa vật lý dữ liệu&lt;br&gt;• &lt;b&gt;QT-14:&lt;/b&gt; Phân quyền theo vai trò&lt;br&gt;• &lt;b&gt;QT-15:&lt;/b&gt; Che số điện thoại KH" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fillColor=#FFFBEB;strokeColor=#F59E0B;strokeWidth=1.5;fontSize=11;fontFamily=Helvetica;fontColor=#78350F;spacingLeft=8;spacingTop=6;spacingRight=6;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="210" width="220" height="150" as="geometry" />
+        </mxCell>
+
+        <!-- Note Quy chuan UML so do -->
+        <mxCell id="note_legend" value="&lt;b style=&quot;font-size:12px; color:#0F172A;&quot;&gt;Quy chuẩn UML (BT1):&lt;/b&gt;&lt;br&gt;1. Actor nằm NGOÀI ranh giới&lt;br&gt;2. Tên UC = Động từ + Đối tượng&lt;br&gt;3. &amp;laquo;include&amp;raquo;: Bắt buộc thực hiện&lt;br&gt;4. &amp;laquo;extend&amp;raquo;: Mở rộng có điều kiện&lt;br&gt;5. Màu xanh đậm = UC trọng tâm (MUST)&lt;br&gt;6. Actor hệ thống: nét đứt màu vàng" style="shape=note;whiteSpace=wrap;html=1;size=14;verticalAlign=top;align=left;fillColor=#F8FAFC;strokeColor=#64748B;strokeWidth=1.5;fontSize=11;fontFamily=Helvetica;fontColor=#334155;spacingLeft=8;spacingTop=6;spacingRight=6;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="390" width="220" height="135" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
