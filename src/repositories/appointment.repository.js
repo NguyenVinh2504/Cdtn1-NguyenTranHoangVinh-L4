@@ -6,11 +6,11 @@ class AppointmentRepository {
   }
 
   /**
-   * Kiểm tra trùng lịch hẹn của KTV trong vòng +/- 45 phút
+   * Kiểm tra trùng lịch hẹn của KTV trong vòng ±30 phút (khớp UC4 / FR4)
    */
   async hasConflict(technicianId, appointmentDate, excludeTicketId = null) {
     const targetTime = new Date(appointmentDate).getTime();
-    const windowMs = 45 * 60 * 1000; // Khung giờ xung đột 45 phút
+    const windowMs = 30 * 60 * 1000;
     const startRange = new Date(targetTime - windowMs);
     const endRange = new Date(targetTime + windowMs);
 

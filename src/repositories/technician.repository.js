@@ -5,6 +5,10 @@ class TechnicianRepository {
     this.client = client;
   }
 
+  withClient(client) {
+    return new TechnicianRepository(client);
+  }
+
   async findById(technicianId) {
     return this.client.technician.findUnique({
       where: { technicianId: BigInt(technicianId) },

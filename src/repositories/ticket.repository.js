@@ -5,6 +5,31 @@ class TicketRepository {
     this.client = client;
   }
 
+  withClient(client) {
+    return new TicketRepository(client);
+  }
+
+  /**
+   * NFR3: Service mở transaction ACID; mọi thao tác phân công dùng cùng một client Prisma.
+   */
+  runInTransaction(work) {
+    return this.client.$transaction(async tx => work(tx));
+  }
+
+  /**
+   * Khóa dòng phiếu trước khi phân công (SELECT ... FOR UPDATE) để tránh gán trùng.
+   */
+  async lockById(ticketId) {
+    const id = BigInt(ticketId);
+    const locked = await this.client.$queryRaw`
+      SELECT ticket_id FROM ticket WHERE ticket_id = ${id} FOR UPDATE
+    `;
+    if (!locked || locked.length === 0) {
+      return null;
+    }
+    return this.findById(ticketId);
+  }
+
   async findById(ticketId) {
     return this.client.ticket.findUnique({
       where: { ticketId: BigInt(ticketId) },

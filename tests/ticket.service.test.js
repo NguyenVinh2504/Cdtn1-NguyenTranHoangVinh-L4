@@ -57,6 +57,7 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
 
     mockTicketRepo = {
       findById: jest.fn(async id => fakeTickets.find(t => t.ticketId === Number(id)) || null),
+      lockById: jest.fn(async id => fakeTickets.find(t => t.ticketId === Number(id)) || null),
       findMany: jest.fn(async () => ({ total: fakeTickets.length, items: fakeTickets })),
       countOpenByTechnician: jest.fn(async techId => 2),
       update: jest.fn(async (id, updateData) => {

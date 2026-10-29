@@ -45,28 +45,28 @@
         <mxCell id="layer2-title" value="LỚP NGHIỆP VỤ (BUSINESS / SERVICE) — &gt;&gt;&gt; TOÀN BỘ quy tắc QT-04/06/07/08/13/14/15 nằm ở đây &lt;&lt;&lt;&#xa;Mở Database Transaction cho phân công (NFR3), tính due_date, phát hiện xung đột lịch" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="110" y="300" width="980" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="svc1" value="AssignmentService&#10;.assignTicket()&#10;QT-08: cùng TT, prof≥3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc1" value="TicketService&#10;.assignTechnician()&#10;QT-08 + tx FOR UPDATE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="120" y="350" width="180" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="svc2" value="TicketQueryService&#10;.listUnassigned()&#10;phân trang + sắp xếp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc2" value="TicketService&#10;.listUnassigned()&#10;phân trang + sắp xếp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="320" y="350" width="180" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="svc3" value="TechnicianQueueService&#10;.listMine()&#10;sắp theo due_date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc3" value="TicketService&#10;.listTechnicianTickets()&#10;sắp theo due_date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="520" y="350" width="180" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="svc4" value="AppointmentService&#10;.create()&#10;check trùng lịch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc4" value="TicketService&#10;.scheduleAppointment()&#10;trùng lịch ±30 phút" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="720" y="350" width="180" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="svc5" value="WorkloadService&#10;.summary()&#10;đếm phiếu đang giữ" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc5" value="TechnicianService&#10;.listCandidatesForTicket()&#10;workload + QT-08" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="120" y="425" width="180" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="svc6" value="StatusService&#10;.transition()&#10;QT-06 vòng đời" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc6" value="TicketService&#10;.transitionStatus()&#10;QT-06 vòng đời" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="320" y="425" width="180" height="60" as="geometry" />
         </mxCell>
         <mxCell id="svc7" value="SlaCalculator&#10;QT-04: CAO=24h,&#10;TB=72h, THAP=120h" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="520" y="425" width="180" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="svc8" value="ReassignService&#10;+ lý do bắt buộc&#10;(US8)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
+        <mxCell id="svc8" value="TicketService.assign&#10;điều chuyển (US2)&#10;kèm lý do" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#82b366" vertex="1" parent="1">
           <mxGeometry x="720" y="425" width="180" height="60" as="geometry" />
         </mxCell>
 
@@ -80,23 +80,23 @@
         <mxCell id="layer3-title" value="LỚP TRUY CẬP DỮ LIỆU (REPOSITORY / DAO)&#xa;Che giấu SQL, dùng index (technician_id, due_date), tham gia transaction do Service mở. KHÔNG chứa quy tắc nghiệp vụ" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;whiteSpace=wrap;fontSize=13;fontStyle=1" vertex="1" parent="1">
           <mxGeometry x="110" y="570" width="980" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="repo1" value="ITicketRepository&#10;+ PgTicketRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+        <mxCell id="repo1" value="TicketRepository&#10;lockById FOR UPDATE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="120" y="625" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="repo2" value="ITechnicianRepository&#10;+ PgTechnicianRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+        <mxCell id="repo2" value="TechnicianRepository&#10;Prisma ORM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="320" y="625" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="repo3" value="IAppointmentRepository&#10;+ PgAppointmentRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+        <mxCell id="repo3" value="AppointmentRepository&#10;Prisma ORM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="520" y="625" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="repo4" value="IWorkloadRepository&#10;+ PgWorkloadRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+        <mxCell id="repo4" value="CustomerRepository&#10;Prisma ORM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="720" y="625" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="repo5" value="ITicketStatusLogRepository&#10;+ PgTicketStatusLogRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
+        <mxCell id="repo5" value="JSONB status_history&#10;trên TicketRepository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656" vertex="1" parent="1">
           <mxGeometry x="920" y="625" width="180" height="50" as="geometry" />
         </mxCell>
 
-        <mxCell id="arrow3" value="SQL qua node-postgres (pg driver)" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;strokeWidth=2" edge="1" parent="1" source="layer3" target="layer4">
+        <mxCell id="arrow3" value="SQL qua Prisma ORM (PostgreSQL)" style="endArrow=classic;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=11;strokeWidth=2" edge="1" parent="1" source="layer3" target="layer4">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 

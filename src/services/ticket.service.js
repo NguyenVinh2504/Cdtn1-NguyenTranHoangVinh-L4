@@ -56,8 +56,31 @@ class TicketService {
    * Thi hành các quy tắc nghiệp vụ: QT-06, QT-07, QT-08, và cân bằng tải V3/FR5
    */
   async assignTechnician(ticketId, technicianId, changedBy = null, note = 'Phân công kỹ thuật viên') {
-    // 1. Kiểm tra sự tồn tại của phiếu bảo hành
-    const ticket = await this.tickets.findById(ticketId);
+    const execute = (ticketRepo, technicianRepo) =>
+      this._assignTechnician(ticketId, technicianId, changedBy, note, ticketRepo, technicianRepo);
+
+    // NFR3: mở 1 transaction ACID; Repository khóa dòng ticket bằng SELECT FOR UPDATE.
+    // Unit test mock không có runInTransaction thì chạy thẳng trên repo giả.
+    if (typeof this.tickets.runInTransaction === 'function' && typeof this.tickets.withClient === 'function') {
+      return this.tickets.runInTransaction(async tx => {
+        const ticketRepo = this.tickets.withClient(tx);
+        const technicianRepo =
+          typeof this.technicians.withClient === 'function'
+            ? this.technicians.withClient(tx)
+            : this.technicians;
+        return execute(ticketRepo, technicianRepo);
+      });
+    }
+
+    return execute(this.tickets, this.technicians);
+  }
+
+  async _assignTechnician(ticketId, technicianId, changedBy, note, ticketRepo, technicianRepo) {
+    // 1. Khóa (hoặc đọc) phiếu bảo hành trước khi gán KTV
+    const ticket =
+      typeof ticketRepo.lockById === 'function'
+        ? await ticketRepo.lockById(ticketId)
+        : await ticketRepo.findById(ticketId);
     if (!ticket) {
       throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành với mã ID ${ticketId}`);
     }
@@ -71,7 +94,7 @@ class TicketService {
     }
 
     // 3. Kiểm tra thông tin kỹ thuật viên
-    const tech = await this.technicians.findById(technicianId);
+    const tech = await technicianRepo.findById(technicianId);
     if (!tech || !tech.isActive) {
       throw new AppError(
         'KTV_KHONG_KHA_DUNG',
@@ -96,7 +119,7 @@ class TicketService {
     }
 
     // 6. V3 & FR5: Kiểm tra khối lượng công việc hiện tại (workload cân bằng tải)
-    const openCount = await this.tickets.countOpenByTechnician(technicianId);
+    const openCount = await ticketRepo.countOpenByTechnician(technicianId);
     if (openCount >= MAX_OPEN_TICKETS_PER_TECH) {
       throw new AppError(
         'KTV_QUA_TAI',
@@ -114,8 +137,8 @@ class TicketService {
       note: note || (ticket.status === 'DA_PHAN_CONG' ? 'Điều chuyển KTV' : 'Phân công kỹ thuật viên')
     };
 
-    // 8. Cập nhật phiếu trong database (nguyên tử)
-    return this.tickets.update(ticketId, {
+    // 8. Cập nhật phiếu trong cùng transaction (gán KTV + trạng thái + JSONB)
+    return ticketRepo.update(ticketId, {
       technicianId,
       status: 'DA_PHAN_CONG',
       statusHistory: [...currentHistory, newHistoryEntry]
@@ -302,8 +325,7 @@ class TicketService {
       throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành ID ${ticketId}`);
     }
 
-    // Ràng buộc nghiệp vụ: Không được xóa phiếu đang xử lý hoặc đã hoàn tất
-    if (['DANG_XU_LY', 'CHO_LINH_KIEN', 'HOAN_TAT', 'DA_DONG'].includes(ticket.status)) {
+    if (ticket.status !== 'MOI') {
       throw new AppError(
         'KHONG_THE_XOA_PHIEU',
         `Không thể xóa phiếu đang ở trạng thái '${ticket.status}'. Chỉ được phép xóa phiếu ở trạng thái 'MOI'.`

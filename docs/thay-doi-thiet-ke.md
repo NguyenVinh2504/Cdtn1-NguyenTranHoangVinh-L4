@@ -51,3 +51,11 @@
 - **Vì sao:** Tiếp thu phản hồi chấm điểm Bài tập 1 về việc số lượng User Story vượt khung quy định (8 US so với yêu cầu 5–7); đồng thời phản ánh chính xác kiến trúc mã nguồn và API của Bài tập 2 khi thao tác phân công lần đầu và điều chuyển đã được gộp chung vào một endpoint duy nhất `POST /api/tickets/:id/assign` (đã nêu tại Thay đổi 5).
 - **Ảnh hưởng tới thành phần nào:** `docs/srs.md` (mục 3.2 bảng User Story, mục 3.3 tiêu chí AC2.4, mục 6 bảng Traceability Matrix), `docs/usecase_spec.md` (mục bảng tổng quan UC và liên kết US2/UC7), `docs/architecture.md`.
 
+---
+
+### Thay đổi 7: Hiện thực transaction ACID + `SELECT FOR UPDATE` và migration versioned
+
+- **Thay đổi gì:** `TicketService.assignTechnician()` mở `prisma.$transaction`; `TicketRepository.lockById()` khóa dòng phiếu bằng `SELECT ... FOR UPDATE` trước khi gán KTV và append `status_history`; thêm `prisma/migrations/20261029000000_init` để dựng 6 bảng từ CSDL trống bằng `npx prisma migrate deploy`.
+- **Vì sao:** Khớp NFR3 đã mô tả ở BT1 (một transaction, 0% gán trùng) và tiêu chí S3 của BT2 (có tệp migration, không chỉ `db push`); Prisma CLI chuyển sang `dependencies` để Docker production chạy được migrate.
+- **Ảnh hưởng tới thành phần nào:** `src/services/ticket.service.js`, `src/repositories/ticket.repository.js`, `src/repositories/technician.repository.js`, `prisma/migrations/`, `package.json`, `Dockerfile`, `README.md`, `docs/architecture.md`.
+

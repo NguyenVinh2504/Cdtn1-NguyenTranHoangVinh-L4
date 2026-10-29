@@ -22,7 +22,7 @@ Hệ thống Smart CRM - Luồng L4 giải quyết trọn vẹn bài toán đi�
 - **Frontend:** React 18, Vite, Tailwind CSS, Lucide Icons. Kiến trúc gọi API tách lớp riêng (`src/api/client.js`, `tickets.api.js`, `technicians.api.js`), xử lý tập trung 3 trạng thái (Đang tải, Rỗng có nút xóa lọc, Lỗi có nút thử lại).
 - **Backend:** Node.js 20 LTS, Express, Prisma ORM 5. Kiến trúc tách rời nghiêm ngặt 3 tầng: `routes/` (HTTP & mapping mã lỗi) ↔ `services/` (chứa toàn bộ quy tắc nghiệp vụ, không phụ thuộc HTTP) ↔ `repositories/` (truy xuất CSDL).
 - **Cơ sở dữ liệu:** PostgreSQL 16 (Lược đồ 6 bảng chuẩn 3NF: `customer`, `device`, `service_center`, `issue_category`, `technician`, `ticket`). Lịch sử chuyển trạng thái lưu dưới dạng `status_history` (JSONB Document-in-Row).
-- **Kiểm thử tự động:** Jest, 28 unit & integration test cases bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data).
+- **Kiểm thử tự động:** Jest, 29 unit & integration test cases bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data).
 - **Đóng gói & Triển khai:** Docker, `docker-compose.yml` (chạy toàn bộ backend + frontend + database bằng 1 lệnh).
 
 ---
@@ -63,7 +63,7 @@ Theo góp ý đánh giá Bài tập 1, hệ thống đã chuẩn hóa và giải
 Mở terminal (PowerShell, Command Prompt hoặc Terminal) và thực hiện clone dự án:
 
 ```bash
-git clone https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4.git
+git clone --branch v0.2 https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4.git
 cd Cdtn1-NguyenTranHoangVinh-L4
 ```
 *(Nếu nhận mã nguồn qua tệp nén `.zip`, giải nén và mở cửa sổ dòng lệnh tại thư mục gốc `Cdtn1-NguyenTranHoangVinh-L4`)*
@@ -98,9 +98,9 @@ npm --prefix frontend install
   ```
   *(Nếu máy bạn đã có sẵn PostgreSQL cục bộ trên cổng 5432, hãy đảm bảo thông tin kết nối trong file `.env` khớp với máy)*
 
-- **3.2. Đẩy lược đồ bảng và nạp dữ liệu mẫu:**
+- **3.2. Chạy migration tạo bảng từ CSDL trống và nạp dữ liệu mẫu:**
   ```bash
-  npx prisma db push
+  npx prisma migrate deploy
   node prisma/seed.js
   ```
   *(Hoặc sử dụng câu lệnh gộp nhanh có sẵn trong package.json: `npm run db:setup`)*
@@ -147,9 +147,9 @@ Sau khi hoàn tất, hệ thống tự động dựng và khởi chạy 3 contai
 
 ## 5. Hướng dẫn chạy Bộ kiểm thử (Automated Tests)
 
-*(Yêu cầu: Đã cài Node.js theo mục 4.1. Toàn bộ 28 kịch bản kiểm thử chạy độc lập, không phụ thuộc CSDL nhờ kiến trúc Mock Repository)*:
+*(Yêu cầu: Đã cài Node.js theo mục 4.1. Toàn bộ 29 kịch bản kiểm thử chạy độc lập, không phụ thuộc CSDL nhờ kiến trúc Mock Repository)*:
 
-Chạy toàn bộ 28 test cases bằng **MỘT lệnh duy nhất** (không phụ thuộc vào CSDL máy cá nhân):
+Chạy toàn bộ 29 test cases bằng **MỘT lệnh duy nhất** (không phụ thuộc vào CSDL máy cá nhân):
 
 ```bash
 npm test
@@ -293,6 +293,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── ai-disclosure.md              # Bảng khai báo AI 4 cột cập nhật cho BT2
 │   └── api-contract.md               # Hợp đồng API REST/JSON
 ├── prisma/
+│   ├── migrations/                   # DDL versioned: tạo 6 bảng từ CSDL trống (S3)
 │   ├── schema.prisma                 # Lược đồ Prisma 6 bảng quan hệ + JSONB status_history
 │   └── seed.js                       # Tệp nạp dữ liệu mẫu idempotent (6 TT, KTV, Khách, Thiết bị, Phiếu)
 ├── src/                              # Backend Node.js / Express (Tách 3 tầng sạch)
@@ -304,7 +305,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── middlewares/                  # Auth JWT, phoneMasker (QT-15), errorHandler tập trung
 │   ├── app.js                        # Ghép nối các tầng và phục vụ frontend build
 │   └── server.js                     # Khởi động dịch vụ trên cổng 3000
-├── tests/                            # Bộ kiểm thử tự động Jest (28 test cases)
+├── tests/                            # Bộ kiểm thử tự động Jest (29 test cases)
 │   ├── ticket.service.test.js        # Test nghiệp vụ phân công, giá trị biên, dữ liệu sai
 │   ├── technician.service.test.js    # Test quản lý KTV và cân bằng tải
 │   ├── ticket.validator.test.js      # Test kiểm tra dữ liệu đầu vào
@@ -333,7 +334,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 - [x] Tách đủ 3 lớp `routes/`, `services/`, `repositories/`, file service không chứa dấu vết HTTP.
 - [x] Đủ 4 thao tác CRUD trên ít nhất 2 thực thể (`Ticket` và `Technician`).
 - [x] Hiện thực các quy tắc nghiệp vụ cốt lõi: QT-08 (proficiency ≥ 3, cùng trung tâm), QT-06 (vòng đời không đảo ngược, ghi log JSONB), QT-04 (SLA tự động), QT-11 (quá tải KTV), FR4 (xung đột lịch hẹn).
-- [x] 28 kịch bản kiểm thử PASS 100% bằng lệnh `npm test` với 3 loại: luồng đúng, giá trị biên, dữ liệu sai.
+- [x] 29 kịch bản kiểm thử PASS 100% bằng lệnh `npm test` với 3 loại: luồng đúng, giá trị biên, dữ liệu sai.
 - [x] Frontend React với 3 màn hình chính kết nối API thật (M1, M2, M3).
 - [x] Xử lý đủ 3 trạng thái (đang tải, rỗng phân biệt, lỗi kết nối có nút thử lại).
 - [x] Che số điện thoại khách hàng `090****567` cho vai trò KTV (QT-15, NFR2).
