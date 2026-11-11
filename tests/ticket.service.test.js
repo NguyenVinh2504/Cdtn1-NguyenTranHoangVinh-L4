@@ -21,10 +21,10 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
         technicianId: null,
         status: 'MOI',
         priority: 'CAO',
-        receivedAt: new Date('2026-10-25T08:00:00Z'),
-        dueDate: new Date('2026-10-26T08:00:00Z'),
+        receivedAt: new Date('2026-10-26T03:00:00Z'),
+        dueDate: new Date('2026-10-27T03:00:00Z'),
         statusHistory: [
-          { from: null, to: 'MOI', at: '2026-10-25T08:00:00Z', by: null, note: 'Tiếp nhận' }
+          { from: null, to: 'MOI', at: '2026-10-26T03:00:00Z', by: null, note: 'Tiếp nhận' }
         ]
       },
       {
@@ -121,8 +121,8 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
       });
       expect(updated.issueDesc).toBe('Mô tả sự cố mới đã được cập nhật chi tiết trên 10 ký tự');
       expect(updated.priority).toBe('TRUNG_BINH');
-      // SLA 72 giờ từ ngày tiếp nhận 2026-10-25T08:00:00Z
-      expect(new Date(updated.dueDate).toISOString()).toBe(new Date('2026-10-28T08:00:00Z').toISOString());
+      // SLA 72 giờ làm việc từ Thứ 2 10:00 (giờ VN) → Thứ 5 10:00 (giờ VN)
+      expect(new Date(updated.dueDate).toISOString()).toBe(new Date('2026-10-29T03:00:00Z').toISOString());
     });
 
     test('TC1.3 (CRUD Read Entity 1): Tra cứu danh sách phiếu bảo hành qua listTickets', async () => {
@@ -158,8 +158,9 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
       }
     });
 
-    test('TC2.3 (Biên SLA): Tự động tính đúng due_date cho các mốc SLA 24h, 72h, 120h theo QT-04', () => {
-      const received = new Date('2026-10-25T10:00:00Z');
+    test('TC2.3 (Biên SLA): Tự động tính đúng due_date cho các mốc SLA 24h, 72h, 120h theo QT-04 (giờ làm việc)', () => {
+      // Tiếp nhận vào THỨ HAI (ngày làm việc) → hạn = đúng số giờ làm việc
+      const received = new Date('2026-10-26T03:00:00Z');
 
       const dueCao = ticketService.calculateDueDate(received, 'CAO');
       expect(dueCao.getTime() - received.getTime()).toBe(24 * 3600 * 1000);
@@ -169,6 +170,11 @@ describe('TicketService - Bộ kiểm thử module cốt lõi Luồng L4 (BT2 - 
 
       const dueThap = ticketService.calculateDueDate(received, 'THAP');
       expect(dueThap.getTime() - received.getTime()).toBe(120 * 3600 * 1000);
+
+      // Biên: tiếp nhận vào CHỦ NHẬT → giờ Chủ Nhật không được tính vào hạn
+      const receivedSunday = new Date('2026-10-25T03:00:00Z');
+      const dueCaoFromSunday = ticketService.calculateDueDate(receivedSunday, 'CAO');
+      expect(dueCaoFromSunday.toISOString()).toBe('2026-10-26T17:00:00.000Z');
     });
   });
 

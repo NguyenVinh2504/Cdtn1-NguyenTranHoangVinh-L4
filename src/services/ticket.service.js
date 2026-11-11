@@ -1,11 +1,8 @@
 const { AppError } = require('../errors/AppError');
+const { calculateSlaDueDate, SLA_HOURS } = require('../utils/sla');
 
-// Thời hạn cam kết SLA tính theo giờ làm việc quy định tại QT-04
-const SLA_HOURS = {
-  CAO: 24,
-  TRUNG_BINH: 72,
-  THAP: 120
-};
+// Thời hạn cam kết SLA theo QT-04 (tính theo GIờ LÀM VIỆC — chi tiết thuật toán
+// và lý do nằm ở src/utils/sla.js; SRS: docs/srs.md — QT-04).
 
 // Giới hạn số phiếu mở tối đa cho 1 KTV để cân bằng tải (Giải quyết Vấn đề V3 & FR5/US5 trong SRS)
 const MAX_OPEN_TICKETS_PER_TECH = 8;
@@ -35,20 +32,19 @@ class TicketService {
 
   /**
    * Tính toán thời hạn cam kết SLA tự động dựa trên mức ưu tiên (QT-04)
+   * Hạn được tính theo GIỜ LÀM VIỆC (bỏ qua Chủ Nhật) — xem src/utils/sla.js.
    * @param {Date|string} receivedAt Thời điểm tiếp nhận
    * @param {string} priority Mức độ ưu tiên ('CAO' | 'TRUNG_BINH' | 'THAP')
    * @returns {Date} Thời điểm hết hạn cam kết SLA
    */
   calculateDueDate(receivedAt, priority) {
-    const hours = SLA_HOURS[priority];
-    if (!hours) {
+    if (!SLA_HOURS[priority]) {
       throw new AppError(
         'UU_TIEN_KHONG_HOP_LE',
         `Mức độ ưu tiên '${priority}' không hợp lệ. Phải là CAO, TRUNG_BINH hoặc THAP.`
       );
     }
-    const baseTime = receivedAt ? new Date(receivedAt).getTime() : Date.now();
-    return new Date(baseTime + hours * 3600 * 1000);
+    return calculateSlaDueDate(receivedAt, priority);
   }
 
   /**
