@@ -5,6 +5,7 @@ const {
   validateTransitionStatus,
   validateScheduleAppointment
 } = require('../validators/ticket.validator');
+const { AppError } = require('../errors/AppError');
 
 module.exports = function ticketRoutes(ticketService) {
   const router = express.Router();
@@ -16,6 +17,8 @@ module.exports = function ticketRoutes(ticketService) {
   router.get('/', async (req, res, next) => {
     try {
       const { centerId, status, categoryId, priority, limit, offset } = req.query;
+      // BUG-07 (A01/QT-14): truyền req.user xuống service để áp phạm vi chủ sở hữu
+      // khi vai trò là TECHNICIAN.
       const result = await ticketService.listTickets({
         centerId: centerId || req.user?.centerId,
         status,
@@ -23,7 +26,7 @@ module.exports = function ticketRoutes(ticketService) {
         priority,
         limit,
         offset
-      });
+      }, req.user || null);
 
       res.status(200).json({
         success: true,
@@ -41,6 +44,14 @@ module.exports = function ticketRoutes(ticketService) {
    */
   router.get('/unassigned', async (req, res, next) => {
     try {
+      // BUG-07 (A01/QT-14): KTV không được xem danh sách phiếu chờ phân công của cả trung tâm.
+      if (req.user?.role === 'TECHNICIAN') {
+        throw new AppError(
+          'KHONG_CO_QUYEN',
+          'Bạn không có quyền xem danh sách phiếu chờ phân công của trung tâm'
+        );
+      }
+
       const centerId = req.query.centerId || req.user?.centerId || 2;
       const { priority, categoryId, limit, offset } = req.query;
 
@@ -67,14 +78,27 @@ module.exports = function ticketRoutes(ticketService) {
    */
   router.get('/technician/mine', async (req, res, next) => {
     try {
-      const technicianId = req.query.technicianId || req.user?.id || 3;
+      // BUG-07 (A01/QT-14): với vai trò TECHNICIAN, danh tính lấy từ token/header đã xác thực;
+      // tham số technicianId trên query KHÔNG được phép chỉ định phiếu của KTV khác.
+      const isTechnician = req.user?.role === 'TECHNICIAN';
+      const requestedTechnicianId = req.query.technicianId;
+      const technicianId = isTechnician
+        ? req.user.id
+        : (requestedTechnicianId || req.user?.id || 3);
       const { status, limit, offset } = req.query;
 
-      const result = await ticketService.listTechnicianTickets(technicianId, {
-        status,
-        limit,
-        offset
-      });
+      if (isTechnician && requestedTechnicianId && Number(requestedTechnicianId) !== Number(req.user.id)) {
+        throw new AppError(
+          'KHONG_CO_QUYEN',
+          'Bạn không có quyền xem phiếu bảo hành của kỹ thuật viên khác'
+        );
+      }
+
+      const result = await ticketService.listTechnicianTickets(
+        technicianId,
+        { status, limit, offset },
+        req.user || null
+      );
 
       // Che số điện thoại khách hàng cho vai trò KTV theo QT-15 & NFR2
       const items = (result.items || []).map(t => {
@@ -110,7 +134,8 @@ module.exports = function ticketRoutes(ticketService) {
    */
   router.get('/:id', async (req, res, next) => {
     try {
-      const ticket = await ticketService.getTicketDetail(req.params.id);
+      // BUG-07 (A01/QT-14): KTV chỉ được xem chi tiết phiếu của chính mình.
+      const ticket = await ticketService.getTicketDetail(req.params.id, req.user || null);
       res.status(200).json({
         success: true,
         data: ticket

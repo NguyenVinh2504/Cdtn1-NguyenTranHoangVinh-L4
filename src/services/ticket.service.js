@@ -1,7 +1,7 @@
 const { AppError } = require('../errors/AppError');
 const { calculateSlaDueDate, SLA_HOURS } = require('../utils/sla');
 
-// Thời hạn cam kết SLA theo QT-04 (tính theo GIờ LÀM VIỆC — chi tiết thuật toán
+// Thời hạn cam kết SLA theo QT-04 (tính theo GIỜ LÀM VIỆC — chi tiết thuật toán
 // và lý do nằm ở src/utils/sla.js; SRS: docs/srs.md — QT-04).
 
 // Giới hạn số phiếu mở tối đa cho 1 KTV để cân bằng tải (Giải quyết Vấn đề V3 & FR5/US5 trong SRS)
@@ -262,8 +262,21 @@ class TicketService {
 
   /**
    * Lấy danh sách tất cả phiếu bảo hành theo bộ lọc (Thao tác Read của CRUD Entity 1)
+   * BUG-07 (A01/QT-14): với vai trò TECHNICIAN, phạm vi xem bị giới hạn theo
+   * chủ sở hữu — KTV chỉ thấy phiếu được gán cho chính mình.
    */
-  async listTickets(options = {}) {
+  async listTickets(options = {}, caller = null) {
+    if (caller && caller.role === 'TECHNICIAN') {
+      const scoped = { ...options };
+      // Bỏ mọi bộ lọc theo trung tâm / trạng thái tổng quát của quản lý;
+      // thay bằng điều kiện chủ sở hữu duy nhất.
+      const result = await this.tickets.findByTechnician(caller.id, {
+        status: scoped.status,
+        limit: scoped.limit,
+        offset: scoped.offset
+      });
+      return result;
+    }
     return this.tickets.findMany(options);
   }
 
@@ -321,19 +334,39 @@ class TicketService {
 
   /**
    * Lấy danh sách phiếu được giao cho một KTV theo SLA (UC3)
+   * BUG-07 (A01/QT-14): KTV chỉ được xem phiếu CỦA CHÍNH MÌNH —
+   * tham số technicianId từ query KHÔNG được tin tưởng khi vai trò là TECHNICIAN.
    */
-  async listTechnicianTickets(technicianId, options = {}) {
-    return this.tickets.findByTechnician(technicianId, options);
+  async listTechnicianTickets(technicianId, options = {}, caller = null) {
+    const actor = caller || null;
+    let effectiveTechnicianId = technicianId;
+
+    if (actor && actor.role === 'TECHNICIAN') {
+      // Cưỡng chế theo danh tính đã xác thực, bỏ qua giá trị do client gửi lên
+      effectiveTechnicianId = actor.id;
+    }
+
+    return this.tickets.findByTechnician(effectiveTechnicianId, options);
   }
 
   /**
    * Lấy chi tiết phiếu
+   * BUG-07 (A01/QT-14): KTV chỉ được xem chi tiết phiếu được gán cho chính mình.
    */
-  async getTicketDetail(ticketId) {
+  async getTicketDetail(ticketId, caller = null) {
     const ticket = await this.tickets.findById(ticketId);
     if (!ticket) {
       throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành ID ${ticketId}`);
     }
+
+    if (caller && caller.role === 'TECHNICIAN' &&
+        Number(ticket.technicianId) !== Number(caller.id)) {
+      throw new AppError(
+        'KHONG_CO_QUYEN',
+        'Bạn không có quyền xem phiếu bảo hành của kỹ thuật viên khác'
+      );
+    }
+
     return ticket;
   }
 

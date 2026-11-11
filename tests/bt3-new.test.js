@@ -1,8 +1,13 @@
 /**
- * tests/bt3-new.test.js — Bài tập 3 (Track SE): 2 test case mới về KIỂM SOÁT TRUY CẬP
+ * tests/bt3-new.test.js — Bài tập 3 (Track SE): test case KIỂM SOÁT TRUY CẬP
  *
- *   TC-SEC-01 — A01 OWASP: Kỹ thuật viên sửa phiếu bảo hành của KTV khác  → kỳ vọng HTTP 403
- *   TC-SEC-02 — NFR2: Request API nghiệp vụ KHÔNG có token JWT             → kỳ vọng HTTP 401
+ *   TC-11  (TC-SEC-01) — A01 OWASP: KTV sửa phiếu bảo hành của KTV khác → kỳ vọng HTTP 403
+ *   TC-11  (TC-SEC-03) — A01 OWASP: KTV đọc phiếu của KTV khác qua 3 endpoint đọc → HTTP 403
+ *   TC-P1  (TC-SEC-02) — NFR2: Request API nghiệp vụ KHÔNG có token JWT → kỳ vọng HTTP 401
+ *
+ * LƯU Ý: tên hàm test() luôn BẮT ĐẦU bằng mã test case trong docs/test-report.md
+ * để giảng viên có thể chạy lại đúng một test case tại chỗ:
+ *     npx jest tests/bt3-new.test.js -t "TC-11"
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * LƯU Ý QUAN TRỌNG VỀ TÍNH TRUNG THỰC (CLO3 + CLO5)
@@ -294,7 +299,7 @@ describe('TC-SEC-01 — A01 OWASP: Kiểm soát truy cập theo chủ sở hữu
     app = buildApp();
   });
 
-  test('TC-SEC-01: KTV technicianId=5 không được sửa phiếu bảo hành của KTV technicianId=3 (trả HTTP 403, KHÔNG được thay đổi dữ liệu)', async () => {
+  test('TC-11 (TC-SEC-01): KTV technicianId=5 không được sửa phiếu bảo hành của KTV technicianId=3 (trả HTTP 403, KHÔNG được thay đổi dữ liệu)', async () => {
     const TARGET_TICKET_ID = 3;
 
     // Chụp lại trạng thái phiếu đích TRƯỚC khi gọi API
@@ -364,6 +369,79 @@ describe('TC-SEC-01 — A01 OWASP: Kiểm soát truy cập theo chủ sở hữu
     // Lưu ý: khi hệ thống đã sửa xong, các assertion ở trên sẽ PASS.
     // Trước khi sửa, test FAIL và in ra giá trị thực tế ở log phía trên.
   });
+
+  // ===========================================================================
+  // TC-SEC-03 — A01 OWASP: KTV đọc phiếu của KTV khác qua đường ĐỌC
+  // (BUG-07 — phát hiện khi đối chiếu QT-14 với mã nguồn thật)
+  // ===========================================================================
+
+  test('TC-11 (TC-SEC-03): KTV technicianId=5 KHÔNG được đọc phiếu của KTV technicianId=3 qua 3 endpoint đọc (HTTP 403)', async () => {
+    const TARGET_TICKET_ID = 3;
+
+    // -------------------------------------------------------------------------
+    // Bước 1: GET /api/tickets/technician/mine?technicianId=3
+    //         (KTV cố chỉ định tham số của người khác)
+    // -------------------------------------------------------------------------
+    const resMine = await request(app)
+      .get(`/api/tickets/technician/mine?technicianId=${TECH_OWNER_ID}`)
+      .set(techHeaders(TECH_ATTACKER_ID));
+
+    logActual('TC-SEC-03 bước 1 — GET /api/tickets/technician/mine?technicianId=3 (KTV id=5)', resMine);
+
+    // -------------------------------------------------------------------------
+    // Bước 2: GET /api/tickets (danh sách tổng quát) — không được lộ phiếu người khác
+    // -------------------------------------------------------------------------
+    const resList = await request(app)
+      .get('/api/tickets?centerId=2')
+      .set(techHeaders(TECH_ATTACKER_ID));
+
+    logActual('TC-SEC-03 bước 2 — GET /api/tickets?centerId=2 (KTV id=5)', resList);
+
+    // -------------------------------------------------------------------------
+    // Bước 3: GET /api/tickets/3 (chi tiết phiếu của người khác)
+    // -------------------------------------------------------------------------
+    const resDetail = await request(app)
+      .get(`/api/tickets/${TARGET_TICKET_ID}`)
+      .set(techHeaders(TECH_ATTACKER_ID));
+
+    logActual('TC-SEC-03 bước 3 — GET /api/tickets/3 (KTV id=5)', resDetail);
+
+    // -------------------------------------------------------------------------
+    // Bước 4: GET /api/tickets/unassigned (phiếu chờ phân công của cả trung tâm)
+    // -------------------------------------------------------------------------
+    const resUnassigned = await request(app)
+      .get('/api/tickets/unassigned')
+      .set(techHeaders(TECH_ATTACKER_ID));
+
+    logActual('TC-SEC-03 bước 4 — GET /api/tickets/unassigned (KTV id=5)', resUnassigned);
+
+    // =====================================================================
+    // KẾT QUẢ MONG ĐỢI (theo QT-14: "KTV chỉ có quyền truy xuất các phiếu
+    // được gán cho chính mình"):
+    //   1) Chỉ định technicianId của người khác  -> HTTP 403 KHONG_CO_QUYEN
+    //   2) Danh sách tổng quát                   -> KHÔNG chứa phiếu của KTV khác
+    //   3) Chi tiết phiếu của người khác          -> HTTP 403 KHONG_CO_QUYEN
+    //   4) Danh sách phiếu chờ phân công           -> HTTP 403 KHONG_CO_QUYEN
+    // =====================================================================
+
+    // (1) Chỉ định tham số của người khác
+    expect(resMine.status).toBe(403);
+    expect(resMine.body.error).toBe('KHONG_CO_QUYEN');
+
+    // (2) Danh sách tổng quát phải bị giới hạn theo chủ sở hữu
+    expect(resList.status).toBe(200);
+    const listedTicketIds = (resList.body.data || []).map(t => Number(t.technicianId));
+    expect(listedTicketIds.every(id => id === TECH_ATTACKER_ID)).toBe(true);
+    expect(listedTicketIds).not.toContain(TECH_OWNER_ID);
+
+    // (3) Chi tiết phiếu của KTV khác
+    expect(resDetail.status).toBe(403);
+    expect(resDetail.body.error).toBe('KHONG_CO_QUYEN');
+
+    // (4) Danh sách phiếu chờ phân công của cả trung tâm
+    expect(resUnassigned.status).toBe(403);
+    expect(resUnassigned.body.error).toBe('KHONG_CO_QUYEN');
+  });
 });
 
 // =============================================================================
@@ -375,7 +453,7 @@ describe('TC-SEC-02 — NFR2: Request API nghiệp vụ KHÔNG có token JWT ph�
     app = buildApp();
   });
 
-  test('TC-SEC-02: Gọi API nghiệp vụ mà không gửi token (không Authorization, không x-user-role) phải trả HTTP 401 XAC_THUC_KHONG_HOP_LE', async () => {
+  test('TC-P1 (TC-SEC-02): Gọi API nghiệp vụ mà không gửi token (không Authorization, không x-user-role) phải trả HTTP 401 XAC_THUC_KHONG_HOP_LE', async () => {
     // -------------------------------------------------------------------------
     // Bước 1: Gọi API nghiệp vụ KHÔNG có bất kỳ thông tin xác thực nào
     // -------------------------------------------------------------------------
