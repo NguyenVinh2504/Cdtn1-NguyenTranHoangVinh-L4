@@ -126,7 +126,7 @@ module.exports = function ticketRoutes(ticketService) {
    */
   router.put('/:id', async (req, res, next) => {
     try {
-      const updated = await ticketService.updateTicket(req.params.id, req.body);
+      const updated = await ticketService.updateTicket(req.params.id, req.body, req.user || null);
       res.status(200).json({
         success: true,
         message: 'Cập nhật phiếu bảo hành thành công',
@@ -190,7 +190,8 @@ module.exports = function ticketRoutes(ticketService) {
         req.params.id,
         input.status,
         req.user?.id,
-        input.note
+        input.note,
+        req.user || null
       );
 
       res.status(200).json({

@@ -147,11 +147,23 @@ class TicketService {
 
   /**
    * UC6: Cập nhật tiến độ & Chuyển trạng thái theo vòng đời một chiều (QT-06)
+   * BUG-04 (A01/QT-14): KTV chỉ được chuyển trạng thái phiếu của chính mình.
+   * @param {object|null} caller {id, role} của người gọi — truyền req.user từ route; null = bỏ qua (unit test cũ)
    */
-  async transitionStatus(ticketId, nextStatus, changedBy = null, note = null) {
+  async transitionStatus(ticketId, nextStatus, changedBy = null, note = null, caller = null) {
     const ticket = await this.tickets.findById(ticketId);
     if (!ticket) {
       throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành ID ${ticketId}`);
+    }
+
+    // BUG-04 fix: chặn KTV sửa phiếu của KTV khác (A01 Broken Access Control)
+    const actor = caller || (changedBy != null ? { id: changedBy, role: undefined } : null);
+    if (actor && actor.role === 'TECHNICIAN' && ticket.technicianId != null &&
+        Number(ticket.technicianId) !== Number(actor.id)) {
+      throw new AppError(
+        'KHONG_CO_QUYEN',
+        'Bạn không có quyền thao tác trên phiếu bảo hành của kỹ thuật viên khác'
+      );
     }
 
     // Kiểm tra quy tắc chuyển trạng thái hợp lệ
@@ -258,11 +270,21 @@ class TicketService {
   /**
    * Cập nhật thông tin phiếu bảo hành (Thao tác Update của CRUD Entity 1)
    * Ràng buộc nghiệp vụ: Nếu cập nhật mức ưu tiên (priority), tự động tính lại hạn SLA due_date (QT-04)
+   * BUG-04 (A01/QT-14): KTV chỉ được sửa phiếu của chính mình.
    */
-  async updateTicket(ticketId, data) {
+  async updateTicket(ticketId, data, caller = null) {
     const ticket = await this.tickets.findById(ticketId);
     if (!ticket) {
       throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành ID ${ticketId}`);
+    }
+
+    // BUG-04 fix: chặn KTV sửa phiếu của KTV khác (A01 Broken Access Control)
+    if (caller && caller.role === 'TECHNICIAN' && ticket.technicianId != null &&
+        Number(ticket.technicianId) !== Number(caller.id)) {
+      throw new AppError(
+        'KHONG_CO_QUYEN',
+        'Bạn không có quyền thao tác trên phiếu bảo hành của kỹ thuật viên khác'
+      );
     }
 
     // Không được sửa thông tin nếu phiếu đã đóng hoặc hủy
