@@ -165,6 +165,7 @@ class TicketRepository {
     if (data.appointmentStatus !== undefined) updatePayload.appointmentStatus = data.appointmentStatus;
     if (data.issueDesc !== undefined) updatePayload.issueDesc = data.issueDesc;
     if (data.priority !== undefined) updatePayload.priority = data.priority;
+    if (data.dueDate !== undefined) updatePayload.dueDate = data.dueDate;
 
     return this.client.ticket.update({
       where: { ticketId: BigInt(ticketId) },

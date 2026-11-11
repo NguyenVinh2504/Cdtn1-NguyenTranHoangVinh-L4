@@ -37,12 +37,15 @@ services:
       - .env
     environment:
       NODE_ENV: production
-      PORT: ${API_PORT:-3000}
+      # Port nội bộ trong container luôn cố định 3000 để khớp mapping & healthcheck;
+      # đổi cổng trên máy host qua biến API_PORT trong .env.
+      PORT: 3000
       API_PREFIX: ${API_PREFIX:-/api}
       # TÊN DỊCH VỤ của CSDL trong mạng nội bộ Docker, KHÔNG phải localhost
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-mekong_crm_l4}?schema=public
       JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_mekong_mobile_2026}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     ports:
       - "${API_PORT:-3000}:3000"
