@@ -1,0 +1,40 @@
+# =============================================================================
+# .dockerignore - KHÔNG đưa các tệp sau vào Docker image
+# (Giữ image nhỏ + không bao giờ đóng gói secret thật vào image)
+# =============================================================================
+
+# Secret và cấu hình thật của máy lập trình viên - TUYỆT ĐỐI không COPY
+.env
+.env.*
+!.env.example
+
+# Dependency cài đặt sẵn ở máy (phải cài lại trong image theo package-lock.json)
+node_modules/
+frontend/node_modules/
+
+# VCS và IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Log, test output, coverage
+*.log
+logs/
+coverage/
+bt3-unit.log
+
+# Build output của frontend (được build lại trong container web)
+frontend/dist/
+dist/
+build/
+
+# Tài liệu & minh chứng không cần trong runtime image
+docs/exports/
+docs/screenshots/
+
+# Tệp dữ liệu lớn / dữ liệu thô
+data/raw/
+dataset/
+*.sqlite
+*.db

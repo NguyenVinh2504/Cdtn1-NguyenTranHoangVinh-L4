@@ -1,6 +1,10 @@
-version: "3.8"
+# =============================================================================
+# Mekong Mobile Smart CRM - Luồng L4 (Phân công KTV & Lịch hẹn)
+# Đóng gói tái lập được: `cp .env.example .env && docker compose up -d --build`
+# =============================================================================
 
 services:
+  # ---------- CSDL PostgreSQL 16 ----------
   postgres:
     image: postgres:16-alpine
     container_name: mekong_postgres
@@ -14,12 +18,12 @@ services:
     volumes:
       - mekong_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-mekong_crm_l4}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  # Dịch vụ Backend REST API (URL: http://localhost:3000)
+  # ---------- Backend REST API (URL: http://localhost:3000) ----------
   api:
     build:
       context: .
@@ -29,16 +33,27 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
       PORT: ${API_PORT:-3000}
+      API_PREFIX: ${API_PREFIX:-/api}
+      # TÊN DỊCH VỤ của CSDL trong mạng nội bộ Docker, KHÔNG phải localhost
       DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-mekong_crm_l4}?schema=public
       JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_mekong_mobile_2026}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-8h}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     ports:
       - "${API_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 10
 
-  # Dịch vụ Frontend Web UI (URL: http://localhost:5173)
+  # ---------- Frontend Web UI (URL: http://localhost:5173) ----------
   web:
     build:
       context: ./frontend
@@ -52,6 +67,12 @@ services:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-5173}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 10
 
 volumes:
   mekong_pgdata:
