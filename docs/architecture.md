@@ -79,7 +79,8 @@ Sơ đồ thể hiện các phần (lớp) của hệ thống, **trách nhiệm*
 |                                                                                   |
 |  Bảng 3NF (6 bảng): ticket (kèm status_history JSONB) · customer · device ·      |
 |                     technician (kèm proficiency) · issue_category ·              |
-|                     service_center (VIEW v_ticket_status_log, v_appointments)     |
+|                     service_center (6 bảng — không dùng VIEW; lịch sử trạng    |
+|                     thái đọc trực tiếp từ cột JSONB ticket.status_history)       |
 +-----------------------------------------------------------------------------------+
 
 CHÚ THÍCH KÝ HIỆU:

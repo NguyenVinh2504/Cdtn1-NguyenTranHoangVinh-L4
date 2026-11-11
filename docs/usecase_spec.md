@@ -172,7 +172,7 @@
 
 1. Quản lý trung tâm chọn chức năng "Đặt lịch hẹn".
 2. Quản lý nhập thông tin: mã phiếu, ngày hẹn, khung giờ, kỹ thuật viên.
-3. Hệ thống kiểm tra xung đột trùng lịch [gọi UC9 – truy vấn VIEW `v_appointments`].
+3. Hệ thống kiểm tra xung đột trùng lịch [gọi UC9 – kiểm tra qua repository `appointment` trên các cột `appointment_at` / `appointment_status` của bảng `ticket`, cửa sổ ±30 phút].
 4. Nếu không trùng: hệ thống cập nhật cột `appointment_at` + `appointment_status = 'SCHEDULED'` của phiếu (gộp từ bảng appointment cũ).
 5. Hiển thị thông báo thành công kèm chi tiết lịch hẹn.
 
@@ -310,7 +310,7 @@
 ### Luồng chính
 
 1. Hệ thống nhận thông tin: `technician_id`, `appointment_at` (TIMESTAMPTZ).
-2. Hệ thống truy vấn VIEW `v_appointments` lọc các phiếu của cùng KTV trong ngày, `appointment_status IN ('SCHEDULED', 'CONFIRMED')`.
+2. Hệ thống truy vấn các phiếu của cùng KTV trong ngày qua repository `appointment` (cột `appointment_at` + `appointment_status` của bảng `ticket`), lọc `appointment_status IN ('SCHEDULED', 'CONFIRMED')`.
 3. Kiểm tra xem có lịch hẹn nào trùng khung giờ (overlap ±30 phút cho prototype).
 4. Trả về kết quả:
    - **Không trùng:** cho phép cập nhật `appointment_at` cho phiếu.
@@ -341,7 +341,7 @@
 │  DA_HUY │                         │  DA_HUY │                                 └───────────┘
 └─────────┘                         └─────────┘
 
-Ràng buộc: Không được chuyển ngược trạng thái. Mọi lần chuyển phải append một phần tử mới vào mảng `ticket.status_history` (JSONB). Truy vấn lịch sử qua VIEW `v_ticket_status_log`.
+Ràng buộc: Không được chuyển ngược trạng thái, và không được chuyển sang **chính trạng thái hiện tại** (self-loop bị từ chối). Ngoại lệ duy nhất: `CHO_LINH_KIEN → DANG_XU_LY` (đã có linh kiện thay thế, KTV tiếp tục xử lý). Mọi lần chuyển phải append một phần tử mới vào mảng `ticket.status_history` (JSONB). Lịch sử được đọc trực tiếp từ cột JSONB `ticket.status_history` qua repository.
 ```
 
 ---

@@ -55,7 +55,7 @@
 | `PATCH` | `/api/tickets/{id}/appointment` | Đặt lịch hẹn giao – nhận máy (cập nhật `appointment_at` + `appointment_status`) và kiểm tra xung đột trùng lịch của kỹ thuật viên | **US4** | **SHOULD** |
 | `GET` | `/api/technicians/workload` | Xem tải công việc hiện tại (số phiếu đang giữ) của từng kỹ thuật viên trong trung tâm | **US5** | **SHOULD** |
 | `PATCH` | `/api/tickets/{id}/status` | Kỹ thuật viên cập nhật tiến độ và chuyển trạng thái phiếu (tự động append vào `status_history` JSONB) | **US6** | **SHOULD** |
-| `GET` | `/api/tickets/{id}/appointments` | Kỹ thuật viên xem lịch hẹn tiếp khách trong ngày của bản thân (truy vấn VIEW `v_appointments`) | **US7** | **COULD** |
+| `GET` | `/api/tickets/{id}/appointments` | Kỹ thuật viên xem lịch hẹn tiếp khách trong ngày của bản thân (đọc `ticket.appointment_at` qua repository `appointment`) | **US7** | **COULD** |
 | `POST` | `/api/tickets/{id}/reassign` | Điều chuyển phiếu sang kỹ thuật viên khác kèm lý do bắt buộc (ghi vào `note` của phần tử mới trong `status_history`) | **US8** | **COULD** |
 
 ---

@@ -31,7 +31,7 @@ const TicketService = require('../src/services/ticket.service');
 const { AppError } = require('../src/errors/AppError');
 const { phoneMasker } = require('../src/middlewares/phoneMasker.middleware');
 
-describe('BT3 Unit Test — 10 test case của Test Report (docs/test-report.md) — chạy lại 1 case: npx jest tests/bt3-unit.test.js -t "TC-06"', () => {
+describe('BT3 Unit Test — 10 test case của Test Report (docs/test-report.md). Chạy lại 1 case: npx jest tests/bt3-unit.test.js -t <mã>', () => {
   let ticketService;
   let mockTicketRepo;
   let mockTechRepo;
