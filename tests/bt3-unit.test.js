@@ -68,6 +68,20 @@ describe('BT3 Unit Test — 10 test case của Test Report (docs/test-report.md)
           { from: 'MOI', to: 'DA_PHAN_CONG', at: '2026-10-20T09:00:00Z', by: 1 },
           { from: 'DA_PHAN_CONG', to: 'HOAN_TAT', at: '2026-10-21T10:00:00Z', by: 5 }
         ]
+      },
+      {
+        ticketId: 103,
+        ticketCode: 'BH-2-00103/2026',
+        centerId: 2,
+        technicianId: 5,
+        status: 'DA_PHAN_CONG',
+        priority: 'CAO',
+        receivedAt: new Date('2026-10-26T03:00:00Z'),
+        dueDate: new Date('2026-10-27T03:00:00Z'),
+        statusHistory: [
+          { from: null, to: 'MOI', at: '2026-10-26T03:00:00Z', by: null },
+          { from: 'MOI', to: 'DA_PHAN_CONG', at: '2026-10-26T04:00:00Z', by: 1 }
+        ]
       }
     ];
 
@@ -361,6 +375,30 @@ describe('BT3 Unit Test — 10 test case của Test Report (docs/test-report.md)
     expect(caught.code).toBe('KTV_KHONG_CUNG_TRUNG_TAM');
     expect(caught.message).toContain('không thuộc trung tâm tiếp nhận phiếu');
     expect(fakeTickets[0].status).toBe('MOI');
+  });
+
+  test('TC-P3 (BUG-08): Chặn chuyển trạng thái tự thân DA_PHAN_CONG → DA_PHAN_CONG theo QT-06, không ghi log rác', async () => {
+    let caught = null;
+    try {
+      await ticketService.transitionStatus(103, 'DA_PHAN_CONG', 5, 'Cố tình chuyển sang chính nó');
+    } catch (err) {
+      caught = err;
+    }
+
+    logActual('TC-P3 (BUG-08 — self-loop)', [
+      `trạng thái gốc    : DA_PHAN_CONG`,
+      `trạng thái đích   : DA_PHAN_CONG (self-loop)`,
+      `err.code          : ${caught ? caught.code : '(không ném lỗi)'}`,
+      `err.message       : ${caught ? caught.message : '(không ném lỗi)'}`,
+      `repo.update gọi  : ${mockTicketRepo.update.mock.calls.length} lần (mong đợi: 0)`,
+      `statusHistory     : ${fakeTickets[2].statusHistory.length} phần tử (mong đợi: 2)`
+    ]);
+
+    expect(caught).toBeInstanceOf(AppError);
+    expect(caught.code).toBe('TRANG_THAI_KHONG_HOP_LE');
+    expect(caught.message).toContain('quy tắc vòng đời không đảo ngược');
+    expect(mockTicketRepo.update).not.toHaveBeenCalled();
+    expect(fakeTickets[2].statusHistory).toHaveLength(2);
   });
 
   test('TC-P2 (TC-U10): Thao tác trên mã phiếu không tồn tại trả về PHIEU_KHONG_TON_TAI, không update dữ liệu rác', async () => {

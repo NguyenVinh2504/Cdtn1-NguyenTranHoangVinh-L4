@@ -8,9 +8,13 @@ const { calculateSlaDueDate, SLA_HOURS } = require('../utils/sla');
 const MAX_OPEN_TICKETS_PER_TECH = 8;
 
 // Bản đồ vòng đời chuyển trạng thái hợp lệ theo QT-06 (một chiều, không đảo ngược)
+// BUG-08 fix: bỏ self-loop 'DA_PHAN_CONG → DA_PHAN_CONG' (chuyển trạng thái sang chính nó
+// không phải chuyển trạng thái, và làm nhiễu lịch sử JSONB).
+// Ngoại lệ duy nhất được SRS mô tả rõ: CHO_LINH_KIEN → DANG_XU_LY
+// (đã có linh kiện thay thế, KTV tiếp tục xử lý — không phải đảo ngược về trạng thái đã đóng).
 const VALID_TRANSITIONS = {
   MOI: ['DA_PHAN_CONG', 'DA_HUY'],
-  DA_PHAN_CONG: ['DANG_XU_LY', 'DA_PHAN_CONG', 'DA_HUY'], // Cho phép điều chuyển lại nếu cần
+  DA_PHAN_CONG: ['DANG_XU_LY', 'DA_HUY'],
   DANG_XU_LY: ['CHO_LINH_KIEN', 'HOAN_TAT', 'DA_HUY'],
   CHO_LINH_KIEN: ['DANG_XU_LY', 'HOAN_TAT', 'DA_HUY'],
   HOAN_TAT: ['DA_DONG'],
