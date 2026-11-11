@@ -6,6 +6,11 @@ const { AppError } = require('../errors/AppError');
  * Middleware xác thực danh tính người dùng (JWT)
  */
 function authenticate(req, res, next) {
+  // BUG-05 fix (NFR2): endpoint công khai không cần xác thực (healthcheck + login + root)
+  const publicPaths = ['/health', '/', '/api/auth/login'];
+  if (publicPaths.includes(req.path)) {
+    return next();
+  }
   // Hỗ trợ cả Header x-user-* phục vụ test nhanh và Bearer Token chuẩn NFR2
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -30,14 +35,9 @@ function authenticate(req, res, next) {
     return next();
   }
 
-  // Mặc định cho prototype local nếu chưa đăng nhập: cho phép vai trò Quản lý trung tâm mặc định (TT số 2)
-  req.user = {
-    id: 1,
-    role: 'CENTER_MANAGER',
-    centerId: 2,
-    fullName: 'Quản lý TT2 (Mặc định)'
-  };
-  return next();
+  // BUG-05 fix: KHÔNG còn fallback "manager mặc định" — request ẩn danh
+  // tới API nghiệp vụ phải bị từ chối 401 (NFR2)
+  return next(new AppError('XAC_THUC_KHONG_HOP_LE', 'Yêu cầu đăng nhập trước khi thực hiện'));
 }
 
 /**

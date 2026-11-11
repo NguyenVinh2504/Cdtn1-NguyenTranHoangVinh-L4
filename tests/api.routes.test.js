@@ -148,7 +148,7 @@ describe('TicketRoutes - Kiểm thử tầng HTTP & Middleware ánh xạ mã l�
 
     expect(res.statusCode).toBe(200);
     expect(res.jsonData.success).toBe(true);
-    expect(mockTicketService.updateTicket).toHaveBeenCalledWith('10', expect.any(Object));
+    expect(mockTicketService.updateTicket).toHaveBeenCalledWith('10', expect.any(Object), expect.any(Object));
   });
 
   test('RT-8: phoneMasker che số điện thoại cho KTV nhưng giữ nguyên kiểu Date', () => {
