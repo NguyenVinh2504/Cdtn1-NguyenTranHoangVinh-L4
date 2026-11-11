@@ -172,6 +172,7 @@ _Các quy tắc nghiệp vụ trích xuất trực tiếp từ Mục 9 của Cas
 - **QT-06 (Vòng đời trạng thái không đảo ngược):** Phiếu chỉ được chuyển trạng thái tuần tự theo đúng quy trình: `MOI` → `DA_PHAN_CONG` → `DANG_XU_LY` → `CHO_LINH_KIEN` → `HOAN_TAT` → `DA_DONG` (hoặc `DA_HUY`). Tuyệt đối không được chuyển ngược về trạng thái trước đó. Ngoại lệ duy nhất được phép: `CHO_LINH_KIEN` → `DANG_XU_LY` (đã có linh kiện thay thế, kỹ thuật viên tiếp tục xử lý — không phải quay lại trạng thái trước đó đã đóng). Chuyển sang chính trạng thái hiện tại (`DA_PHAN_CONG` → `DA_PHAN_CONG`) không phải là chuyển trạng thái và bị từ chối. Mọi lần thay đổi trạng thái đều phải tự động ghi nhận một bản ghi vào mảng JSONB `status_history` của phiếu (dữ liệu được đọc trực tiếp từ cột JSONB, không dùng VIEW).
 - **QT-07 (Nguyên tắc phân công đơn nhất):** Một phiếu bảo hành tại một thời điểm chỉ được gán cho tối đa một kỹ thuật viên duy nhất (`technician_id`). Mọi thao tác điều chuyển kỹ thuật viên khác phải bắt buộc nhập trường ghi chú lý do (`note`).
 - **QT-08 (Ràng buộc năng lực & Địa bàn):** Kỹ thuật viên chỉ được phân công xử lý phiếu bảo hành khi thỏa mãn đồng thời hai điều kiện: có điểm tay nghề `proficiency >= 3` và đang làm việc tại cùng trung tâm bảo hành tiếp nhận phiếu đó (`center_id`).
+- **QT-11 (Chống quá tải kỹ thuật viên):** Một kỹ thuật viên không được phân công thêm phiếu khi đang giữ **từ 8 phiếu mở trở lên** (phiếu ở trạng thái `DA_PHAN_CONG`, `DANG_XU_LY`, `CHO_LINH_KIEN`). Hệ thống phải từ chối thao tác phân công với mã lỗi `KTV_QUA_TAI` và giữ nguyên trạng thái phiếu. Hằng số hiện thực: `MAX_OPEN_TICKETS_PER_TECH = 8` (`src/services/ticket.service.js`).
 - **QT-13 (Xóa mềm - Soft Delete):** Không xóa vật lý bất kỳ bản ghi nào của phiếu bảo hành, kỹ thuật viên hay lịch hẹn. Khi ngừng hiệu lực chỉ cập nhật cờ `is_active = false` hoặc trạng thái hủy để bảo toàn tính toàn vẹn dữ liệu lịch sử.
 - **QT-14 (Phạm vi dữ liệu theo vai trò):** Kỹ thuật viên chỉ có quyền truy xuất các phiếu bảo hành được gán cho chính mình. Quản lý trung tâm có quyền xem toàn bộ phiếu bảo hành và lịch hẹn thuộc trung tâm mình phụ trách.
 - **QT-15 (Bảo mật thông tin khách hàng):** Số điện thoại khách hàng phải hiển thị dưới dạng che (ví dụ `090****567`) đối với vai trò Kỹ thuật viên; chỉ Quản lý trung tâm và Ban giám đốc mới được xem định dạng đầy đủ.
@@ -182,13 +183,13 @@ _Các quy tắc nghiệp vụ trích xuất trực tiếp từ Mục 9 của Cas
 
 _Bảng đối chiếu xuyên suốt giữa Yêu cầu chức năng ↔ User Story ↔ Use Case ↔ MoSCoW ↔ Kịch bản kiểm thử (Test Case):_
 
-| Mã FR   | Tên Yêu cầu chức năng                                                 | User Story liên quan | Use Case liên quan | Mức MoSCoW | Test Case dự kiến (BT3)               |
-|:-------:|:--------------------------------------------------------------------- |:--------------------:|:------------------:|:----------:|:-------------------------------------:|
-| **FR1** | Tra cứu danh sách phiếu bảo hành chờ phân công theo trung tâm         | **US1**              | **UC1**            | **MUST**   | `TC_FR1_01`, `TC_FR1_02`              |
-| **FR2** | Phân công kỹ thuật viên cho phiếu bảo hành theo tay nghề và trung tâm | **US2**              | **UC2**            | **MUST**   | `TC_FR2_01`, `TC_FR2_02`, `TC_FR2_03` |
-| **FR3** | Xem danh sách phiếu bảo hành được giao sắp xếp theo hạn cam kết SLA   | **US3**              | **UC3**            | **MUST**   | `TC_FR3_01`, `TC_FR3_02`              |
-| **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | `TC_FR4_01`, `TC_FR4_02`              |
-| **FR5** | Giám sát và thống kê khối lượng công việc hiện tại của kỹ thuật viên  | **US5**              | **UC5**            | **SHOULD** | `TC_FR5_01`                           |
-| **FR6** | Cập nhật tiến độ và ghi nhận chuyển trạng thái phiếu bảo hành         | **US6**              | **UC6**            | **SHOULD** | `TC_FR6_01`, `TC_FR6_02`              |
-| **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US2**              | **UC7**            | **COULD**  | `TC_FR7_01`, `TC_FR7_02`              |
-| **FR8** | Xem danh sách lịch hẹn giao nhận cá nhân trong ngày của kỹ thuật viên | **US7**              | **UC8**            | **COULD**  | `TC_FR8_01`                           |
+| Mã FR   | Tên Yêu cầu chức năng                                                 | User Story liên quan | Use Case liên quan | Mức MoSCoW | Quy tắc QT liên quan | Test Case thực tế (BT3) |
+|:-------:|:--------------------------------------------------------------------- |:--------------------:|:------------------:|:----------:|:--------------------:|:------------------------:|
+| **FR1** | Tra cứu danh sách phiếu bảo hành chờ phân công theo trung tâm         | **US1**              | **UC1**            | **MUST**   | QT-14 | `TC-11` (A01 đường đọc — `GET /unassigned` 403 với KTV) |
+| **FR2** | Phân công kỹ thuật viên cho phiếu bảo hành theo tay nghề và trung tâm | **US2**              | **UC2**            | **MUST**   | QT-06, QT-07, QT-08, QT-11 | `TC-02`, `TC-06`, `TC-07`, `TC-10`, `TC-P4`, `TC-P5`, `TC-P6` |
+| **FR3** | Xem danh sách phiếu bảo hành được giao sắp xếp theo hạn cam kết SLA   | **US3**              | **UC3**            | **MUST**   | QT-04, QT-15 | `TC-01`, `TC-05`, `TC-11` |
+| **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | FR4 | `TC-04` (2 nhánh), `TC-09` |
+| **FR5** | Giám sát và thống kê khối lượng công việc hiện tại của kỹ thuật viên  | **US5**              | **UC5**            | **SHOULD** | QT-11 | `TC-P5` (biên đạt), `TC-P6` (biên rớt) |
+| **FR6** | Cập nhật tiến độ và ghi nhận chuyển trạng thái phiếu bảo hành         | **US6**              | **UC6**            | **SHOULD** | QT-06, QT-14 | `TC-02`, `TC-08`, `TC-P3`, `TC-11` |
+| **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US2**              | **UC7**            | **COULD**  | QT-07 | `TC-P4` |
+| **FR8** | Xem danh sách lịch hẹn giao nhận cá nhân trong ngày của kỹ thuật viên | **US7**              | **UC8**            | **COULD**  | QT-14, QT-15 | `TC-11`, `TC-05` |

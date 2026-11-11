@@ -36,7 +36,7 @@
 | **TC-12** | *(KHÔNG có test cũ)* | `prisma/seed.js` | 5 | — (seed) | Chạy thủ công `npm run db:seed` lần 2 (idempotent) |
 
 **Tổng: 10 test map từ test cũ (TC-01…TC-10) + 2 test mới (TC-11, TC-12) = 12 mã test case.**
-_(Số hàm `test()` thực thi: 13 hàm trong `tests/bt3-unit.test.js` — 10 mã TC cốt lõi + `TC-P2` + `TC-P3`; 3 hàm trong `tests/bt3-new.test.js` — `TC-11` × 2 + `TC-P1`. Xem `docs/test-plan.md` Mục 2.1.)_
+_(Số hàm `test()` thực thi: **16** hàm trong `tests/bt3-unit.test.js` — 10 mã TC cốt lõi (TC-01 và TC-04 mỗi mã có 2 nhánh → 12 hàm) + `TC-P2`…`TC-P6` (4 mã phụ) → 16 hàm; **3** hàm trong `tests/bt3-new.test.js` — `TC-11` × 2 + `TC-P1`. Tổng bộ BT3 = **19** hàm. Xem `docs/test-plan.md` Mục 2.1.)_
 
 ### Truy vết quy tắc nghiệp vụ → loại test
 
@@ -49,7 +49,7 @@ _(Số hàm `test()` thực thi: 13 hàm trong `tests/bt3-unit.test.js` — 10 m
 | **QT-15** — che SĐT khách hàng | `TC-05` | — | — |
 | **A01 / QT-14** — kiểm quyền theo chủ sở hữu | — | — | `TC-11` *(Loại 4 — bảo mật)* |
 
-> **Đối chiếu với toàn bộ 8 quy tắc QT trong SRS:** 5 quy tắc trọng tâm ở bảng trên có test đầy đủ. 4 quy tắc còn lại — **QT-03** (ràng buộc UNIQUE ở tầng CSDL), **QT-07** (bắt buộc `note` khi điều chuyển KTV), **QT-11** (chống quá tải KTV), **QT-13** (xóa mềm) — **được khai báo trung thực là ngoài phạm vi 12 TC cốt lõi**, kèm lý do cụ thể ở `docs/test-plan.md` Mục 1.1 và Mục 2.3.1. (QT-13 đã có test hồi quy trong `tests/technician.service.test.js` của bộ BT2.)
+> **Đối chiếu với toàn bộ quy tắc QT trong SRS:** 5 quy tắc trọng tâm ở bảng trên có test đầy đủ. 4 quy tắc còn lại: **QT-07** (bắt buộc `note` khi điều chuyển KTV) → có test `TC-P4`; **QT-11** (chống quá tải KTV) → có test `TC-P5`/`TC-P6`; **QT-13** (xóa mềm) → có test hồi quy `TC-TECH-3` trong `tests/technician.service.test.js` (bộ BT2); **QT-03** (ràng buộc UNIQUE ở tầng CSDL) là quy tắc **duy nhất chưa có test ứng dụng** — được khai báo trung thực kèm lý do ở `docs/test-plan.md` Mục 1.1 và Mục 2.3.1.
 
 ---
 
@@ -233,7 +233,7 @@ _(Số hàm `test()` thực thi: 13 hàm trong `tests/bt3-unit.test.js` — 10 m
 | **7. Kết quả thực tế** | Lần 1 (`npm run db:setup`): exit 0, `🌱…🎉 Hoàn tất Seed`. Đếm BEFORE = `{"service_center":6,"issue_category":6,"technician":8,"customer":4,"device":4,"ticket":4}`. Lần 2 (`npm run db:seed` ngày 2026-11-11): exit code **0**, stdout `✅ 6 TT · ✅ 6 nhóm sự cố · ✅ KTV · ✅ KH · ✅ thiết bị · ✅ phiếu` + `🎉 Hoàn tất`. Đếm AFTER = `{"service_center":6,"issue_category":6,"technician":8,"customer":4,"device":4,"ticket":4}` — **không đổi**. `ticket_code` = `BH-2-00001/2026,BH-2-00002/2026,BH-2-00003/2026,BH-2-00004/2026` (không trùng); `phone` = `0901234567,0912345678,0933456789,0944567890` (không trùng). |
 | **8. PASS / FAIL** | **PASS** |
 
-> **Ghi chú:** `prisma/seed.js` dùng `upsert()` nên thiết kế idempotent. Test này **xác nhận** trên CSDL thật thay vì chỉ tin đọc mã. Minh chứng terminal: `docs/screenshots/tc-12_reseed_evidence.txt` (BEFORE = AFTER = 6/6/8/4/4/4, exit 0, ngày 2026-11-11).
+> **Ghi chú:** `prisma/seed.js` dùng `upsert()` nên thiết kế idempotent. Test này **xác nhận** trên CSDL thật thay vì chỉ tin đọc mã. Minh chứng terminal (ảnh chụp): `docs/screenshots/tc-12_reseed_evidence.png` (BEFORE = AFTER = 6/6/8/4/4/4, exit 0, ngày 2026-11-11).
 
 ---
 
@@ -254,19 +254,19 @@ _(Số hàm `test()` thực thi: 13 hàm trong `tests/bt3-unit.test.js` — 10 m
 | TC-11 | 4 | API | A01 / QT-14 | KTV lạ id=5 **ghi** (PATCH/PUT) và **đọc** (`/technician/mine`, `/:id`, `/unassigned`) phiếu của KTV id=3 → 403 `KHONG_CO_QUYEN`; `GET /` đã giới hạn theo chủ sở hữu; dữ liệu không đổi | **PASS** |
 | TC-12 | 5 | Thủ công (DB thật) | — (seed) | Seed lần 2: exit 0, 6/6/8/4/4/4 không đổi, không trùng | **PASS** |
 
-**Trạng thái cuối (sau fix BUG-04/BUG-05/BUG-06/BUG-07/BUG-08/BUG-09 + chạy TC-12): 12/12 PASS.** Phụ lục `TC-P1` (SEC-02) PASS → `BUG-05`; `TC-P2` (U10) PASS; `TC-P3` (BUG-08) PASS.
+**Trạng thái cuối (sau fix BUG-04/BUG-05/BUG-06/BUG-07/BUG-08/BUG-09 + chạy TC-12): 12/12 PASS.** Phụ lục: `TC-P1` (SEC-02) PASS → `BUG-05`; `TC-P2` (U10) PASS; `TC-P3` (BUG-08) PASS; `TC-P4` (QT-07) PASS; `TC-P5` (QT-11 biên đạt) PASS; `TC-P6` (QT-11 biên rớt) PASS.
 
 **Log chạy thật (`npm test`):**
 ```
 Test Suites: 6 passed, 6 total
-Tests:       45 passed, 45 total
+Tests:       48 passed, 48 total
 Snapshots:   0 total
 Time:        ~3 s
 ```
 
 **Lệnh chạy từng nhóm:**
 ```bash
-npx jest tests/bt3-unit.test.js    # TC-01…TC-10 (không cần CSDL)
+npx jest tests/bt3-unit.test.js    # TC-01…TC-10 + TC-P2…TC-P6 (không cần CSDL)
 npx jest tests/bt3-new.test.js     # TC-11 + TC-P1 (không cần CSDL)
 npm test                            # toàn bộ suite (1 lệnh duy nhất)
 npm run db:seed                     # TC-12 (cần PostgreSQL thật)
@@ -286,7 +286,10 @@ _(Bảng tra cứu đầy đủ 12 mã: `docs/test-plan.md` Mục 4.3.1.)_
 | TC-P1 | TC-SEC-02 | API không token → phải 401 `XAC_THUC_KHONG_HOP_LE`; token sai → 401 `TOKEN_HET_HAN`; `GET /health` vẫn 200 | NFR2 → BUG-05 | **FAIL (trước fix)** → PASS sau fix |
 | TC-P2 | TC-U10 | ticketId `999999` → `PHIEU_KHONG_TON_TAI`, `update` 0 lần | Dữ liệu sai | **PASS** |
 | TC-P3 | *(test mới của BT3)* | Chuyển trạng thái **tự thân** `DA_PHAN_CONG → DA_PHAN_CONG` → `TRANG_THAI_KHONG_HOP_LE`, `update` 0 lần, `statusHistory` giữ nguyên 2 phần tử | QT-06 → BUG-08 | **FAIL (trước fix)** → PASS sau fix (`b0f2f9b`) |
+| TC-P4 | *(test mới của BT3)* | Điều chuyển KTV trên phiếu đang `DA_PHAN_CONG` → `status_history` phải có phần tử mới với `note` lý do **không rỗng** (`'Điều chuyển KTV do chuyên môn chuyên ngành sửa mainboard'`), `from = to = DA_PHAN_CONG`, `by = 99` | QT-07 | **PASS** |
+| TC-P5 | *(test mới của BT3)* | **Biên đạt** QT-11: KTV đang giữ đúng **8 phiếu mở** → `KTV_QUA_TAI`, `update` 0 lần, phiếu giữ `MOI` | QT-11 (FR5) | **PASS** |
+| TC-P6 | *(test mới của BT3)* | **Biên rớt** QT-11: KTV giữ **7 phiếu mở** → vẫn phân công thành công, `status = DA_PHAN_CONG`, `update` gọi 1 lần | QT-11 (FR5) | **PASS** |
 
 > **Ghi chú về `TC-P3`:** trước BUG-08, `VALID_TRANSITIONS['DA_PHAN_CONG']` chứa `'DA_PHAN_CONG'`, nên lệnh `PATCH .../status` với `status = DA_PHAN_CONG` được chấp nhận và ghi thêm 1 phần tử `status_history` rác (`from = to = DA_PHAN_CONG`). Sau commit `b0f2f9b` chuyển trạng thái tự thân bị từ chối đúng QT-06. Chi tiết: `docs/bug-log.md` → BUG-08.
 
-**Tổng số hàm `test()` của toàn bộ suite `npm test`: 45 PASS** (29 hàm hồi quy BT2 + 13 hàm `tests/bt3-unit.test.js` + 3 hàm `tests/bt3-new.test.js`).
+**Tổng số hàm `test()` của toàn bộ suite `npm test`: 48 PASS** (29 hàm hồi quy BT2 + 16 hàm `tests/bt3-unit.test.js` + 3 hàm `tests/bt3-new.test.js`).

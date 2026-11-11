@@ -105,8 +105,13 @@ Table ticket [headercolor: #C62828] {
 }
 
 // =============================================================================
-// VIEW (tham khảo, không hiển thị trong ERD nhưng tạo trong schema.sql)
-// v_ticket_status_log – "bẻ" JSONB thành dạng bảng phẳng để code dễ truy vấn
+// VIEW (THAM KHẢO — KHÔNG ĐƯỢC TRIỂN KHAI)
+// v_ticket_status_log – "bẻ" JSONB thành dạng bảng phẳng để code dễ truy vấn.
+// LƯU Ý: migration chính thức prisma/migrations/20261029000000_init/migration.sql
+// chỉ tạo 6 BẢNG, KHÔNG tạo VIEW nào. Mã nguồn hiện tại đọc trực tiếp cột JSONB
+// ticket.status_history và các cột appointment_at / appointment_status qua
+// repository (xem docs/thay-doi-thiet-ke.md — Thay đổi 1 và Thay đổi 12).
+// Khối bên dưới chỉ là BẢN THIẾT KẾ THAM KHẢO của Bài tập 1 trong db/schema.sql.
 // =============================================================================
 // Table v_ticket_status_log {
 //   log_id bigserial [pk]

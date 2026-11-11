@@ -401,6 +401,78 @@ describe('BT3 Unit Test — 10 test case của Test Report (docs/test-report.md)
     expect(fakeTickets[2].statusHistory).toHaveLength(2);
   });
 
+  test('TC-P4 (QT-07): Điều chuyển KTV trên phiếu đang DA_PHAN_CONG phải ghi kèm note lý do vào status_history', async () => {
+    // QT-07: mỗi lần điều chuyển KTV phải ghi kèm note lý do vào status_history
+    const result = await ticketService.assignTechnician(
+      103, 1, 99, 'Điều chuyển KTV do chuyên môn chuyên ngành sửa mainboard'
+    );
+
+    const latest = result.statusHistory[result.statusHistory.length - 1];
+    logActual('TC-P4 (QT-07 — note khi điều chuyển KTV)', [
+      `phiếu gốc        : 103 (status DA_PHAN_CONG, technicianId đã có)`,
+      `KTV mới          : ${result.technicianId}`,
+      `status           : ${result.status}`,
+      `statusHistory    : ${result.statusHistory.length} phần tử`,
+      `phần tử cuối     : from=${latest.from} to=${latest.to} by=${latest.by}`,
+      `note             : "${latest.note}"`,
+      `note khác rỗng   : ${latest.note.trim().length > 0}`
+    ]);
+
+    expect(latest.from).toBe('DA_PHAN_CONG');
+    expect(latest.to).toBe('DA_PHAN_CONG');
+    expect(result.statusHistory).toHaveLength(3);
+    // QT-07: note lý do phải có thật, không rỗng
+    expect(typeof latest.note).toBe('string');
+    expect(latest.note.trim().length).toBeGreaterThan(0);
+    expect(latest.note).toContain('Điều chuyển KTV');
+    expect(latest.by).toBe(99);
+  });
+
+  test('TC-P5 (QT-11): Từ chối phân công khi KTV đang giữ đủ 8 phiếu mở — mã KTV_QUA_TAI (biên đạt)', async () => {
+    // Biên ĐẠT của QT-11: openCount đúng bằng giới hạn 8 -> vẫn bị từ chối (>= MAX_OPEN_TICKETS_PER_TECH)
+    mockTicketRepo.countOpenByTechnician.mockResolvedValue(8);
+
+    let caught = null;
+    try {
+      await ticketService.assignTechnician(101, 1, 99);
+    } catch (err) {
+      caught = err;
+    }
+
+    logActual('TC-P5 (QT-11 — chống quá tải KTV, biên đạt 8 phiếu)', [
+      `giới hạn           : MAX_OPEN_TICKETS_PER_TECH = 8`,
+      `số phiếu mở của KTV : 8 (đúng biên đạt)`,
+      `err.code            : ${caught ? caught.code : '(không ném lỗi)'}`,
+      `err.message         : ${caught ? caught.message : '(không ném lỗi)'}`,
+      `repo.update gọi     : ${mockTicketRepo.update.mock.calls.length} lần (mong đợi: 0)`,
+      `trạng thái phiếu 101 : ${fakeTickets[0].status} (mong đợi: MOI)`
+    ]);
+
+    expect(caught).toBeInstanceOf(AppError);
+    expect(caught.code).toBe('KTV_QUA_TAI');
+    expect(caught.message).toContain('vượt giới hạn tải cho phép');
+    expect(mockTicketRepo.update).not.toHaveBeenCalled();
+    expect(fakeTickets[0].status).toBe('MOI');
+  });
+
+  test('TC-P6 (QT-11): Biên rớt — KTV còn 7 phiếu mở vẫn được phân công thành công', async () => {
+    // Biên RỚT của QT-11: openCount = 7 (< 8) -> được phân công
+    mockTicketRepo.countOpenByTechnician.mockResolvedValue(7);
+
+    const result = await ticketService.assignTechnician(101, 1, 99);
+
+    logActual('TC-P6 (QT-11 — biên rớt 7 phiếu)', [
+      `số phiếu mở của KTV : 7 (< giới hạn 8)`,
+      `status              : ${result.status}`,
+      `technicianId        : ${result.technicianId}`,
+      `repo.update gọi     : ${mockTicketRepo.update.mock.calls.length} lần (mong đợi: 1)`
+    ]);
+
+    expect(result.status).toBe('DA_PHAN_CONG');
+    expect(result.technicianId).toBe(1);
+    expect(mockTicketRepo.update).toHaveBeenCalledTimes(1);
+  });
+
   test('TC-P2 (TC-U10): Thao tác trên mã phiếu không tồn tại trả về PHIEU_KHONG_TON_TAI, không update dữ liệu rác', async () => {
     let caught = null;
     try {
