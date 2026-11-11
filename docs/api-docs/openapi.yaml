@@ -167,24 +167,25 @@ paths:
       parameters:
         - name: centerId
           in: query
-          description: Filter by service centre
+          description: Filter by service centre — defaults to caller's `centerId`; ignored for `TECHNICIAN` (QT-14)
           schema: { type: integer, example: 2 }
-        - name: technicianId
-          in: query
-          description: Filter by technician — **ignored** for the TECHNICIAN role (QT-14)
-          schema: { type: integer, example: 3 }
         - name: status
           in: query
           schema: { $ref: '#/components/schemas/TicketStatus' }
+        - name: categoryId
+          in: query
+          description: Filter by issue category — ignored for `TECHNICIAN`
+          schema: { type: integer, example: 1 }
         - name: priority
           in: query
+          description: Ignored for `TECHNICIAN`
           schema: { $ref: '#/components/schemas/Priority' }
-        - name: page
-          in: query
-          schema: { type: integer, minimum: 1, default: 1 }
         - name: limit
           in: query
-          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+          schema: { type: integer, minimum: 1, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         '200':
           description: Ticket list
@@ -248,8 +249,20 @@ paths:
       parameters:
         - name: centerId
           in: query
-          description: Service centre — defaults to the caller's own centre
+          description: Service centre — defaults to the caller's own centre (or `2`)
           schema: { type: integer, example: 2 }
+        - name: priority
+          in: query
+          schema: { $ref: '#/components/schemas/Priority' }
+        - name: categoryId
+          in: query
+          schema: { type: integer, example: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         '200':
           description: Unassigned ticket list
@@ -273,14 +286,23 @@ paths:
       tags: [Tickets]
       summary: List the tickets assigned to the signed-in technician
       description: |
-        Returns the open tickets of the signed-in technician, sorted by the committed due date
-        so the most urgent work comes first (QT-04, QT-14). The `technicianId` query
-        parameter is ignored — the scope is always the caller.
+        Returns tickets assigned to the signed-in technician, sorted by the committed due date
+        so the most urgent work comes first (QT-04, QT-14). For the `TECHNICIAN` role, passing a
+        `technicianId` different from the caller's own id returns HTTP 403 `KHONG_CO_QUYEN`.
       parameters:
         - name: technicianId
           in: query
-          description: '**Ignored** — the scope is always the signed-in technician (QT-14)'
+          description: Rejected with HTTP 403 if a `TECHNICIAN` passes another technician's id; allowed for `CENTER_MANAGER`
           schema: { type: integer }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TicketStatus' }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, default: 50 }
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         '200':
           description: Ticket list — customer phone numbers are masked (QT-15)
@@ -307,7 +329,8 @@ paths:
       summary: Get one warranty ticket
       description: |
         Returns the full detail of a ticket, including the customer, the device, the service
-        centre and the assigned technician.
+        centre and the assigned technician. A `TECHNICIAN` may only view tickets assigned to
+        them (QT-14 / A01); viewing another technician's ticket returns HTTP 403.
       responses:
         '200':
           description: Ticket detail
@@ -320,6 +343,8 @@ paths:
                   data: { $ref: '#/components/schemas/Ticket' }
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           description: The ticket does not exist
           content:
@@ -334,8 +359,9 @@ paths:
       tags: [Tickets]
       summary: Update a warranty ticket
       description: |
-        Updates the editable content of a ticket (issue description, priority). A technician
-        may only update a ticket assigned to them (QT-14).
+        Updates the editable content of a ticket (issue description, priority). Changing
+        `priority` recomputes `dueDate` from `receivedAt` using working days only (QT-04).
+        A technician may only update a ticket assigned to them (QT-14).
       requestBody:
         required: true
         content:
@@ -367,6 +393,11 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Ticket is already in `DA_DONG` or `DA_HUY` (`TRANG_THAI_KHONG_HOP_LE`)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -432,14 +463,14 @@ paths:
           application/json:
             schema:
               type: object
-              required: [technicianId, note]
+              required: [technicianId]
               properties:
                 technicianId:
                   type: integer
                   example: 3
                 note:
                   type: string
-                  description: Reason for the assignment or reassignment (QT-07)
+                  description: Reason for the assignment or reassignment (defaults to "Phân công kỹ thuật viên" if omitted in validator; mandatory in UI for reassignment per QT-07)
                   example: 'Phan cong KTV chuyen man hinh xu ly gap trong ca sang'
       responses:
         '200':
@@ -452,18 +483,24 @@ paths:
                   success: { type: boolean, example: true }
                   message: { type: string, example: 'Phân công kỹ thuật viên thành công' }
                   data: { $ref: '#/components/schemas/Ticket' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: The ticket or the technician does not exist
+          description: The ticket (`PHIEU_KHONG_TON_TAI`) or active technician (`KTV_KHONG_KHA_DUNG`) does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: Ticket status is neither `MOI` nor `DA_PHAN_CONG` (`TRANG_THAI_KHONG_HOP_LE`)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '422':
           description: |
             The assignment violates a business rule — `KTV_KHONG_CUNG_TRUNG_TAM` (QT-08),
-            `KTV_KHONG_DU_TAY_NGHE` (QT-08), `KTV_QUA_TAI` (QT-11) or
-            `TRANG_THAI_KHONG_HOP_LE`.
+            `KTV_KHONG_DU_TAY_NGHE` (QT-08) or `KTV_QUA_TAI` (QT-11).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -612,15 +649,12 @@ paths:
       tags: [Technicians]
       summary: List the technicians of a service centre
       description: |
-        Returns the roster of a centre, sorted by proficiency descending and then by name.
+        Returns the active roster (`isActive = true`) of a centre, sorted by proficiency descending and then by name.
       parameters:
         - name: centerId
           in: query
           description: Service centre — defaults to the caller's own centre
           schema: { type: integer, example: 2 }
-        - name: isActive
-          in: query
-          schema: { type: boolean, default: true }
       responses:
         '200':
           description: Technician list
@@ -665,11 +699,6 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '404':
-          description: The service centre does not exist
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -730,8 +759,6 @@ paths:
                   success: { type: boolean, example: true }
                   message: { type: string, example: 'Cập nhật kỹ thuật viên thành công' }
                   data: { $ref: '#/components/schemas/Technician' }
-        '400':
-          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -739,6 +766,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          $ref: '#/components/responses/InternalError'
     delete:
       tags: [Technicians]
       summary: Deactivate a technician (soft delete)
@@ -1051,7 +1080,6 @@ components:
           minLength: 10
           example: 'May bi vao nuoc, khong len man hinh sau khi lau'
         priority: { $ref: '#/components/schemas/Priority' }
-        note: { type: string }
 
     TechnicianCreateRequest:
       type: object
@@ -1065,7 +1093,6 @@ components:
         centerId: { type: integer, minimum: 1, example: 2 }
         level: { $ref: '#/components/schemas/TechnicianLevel' }
         proficiency: { type: integer, minimum: 1, maximum: 5, example: 4 }
-        isActive: { type: boolean, default: true }
 
   responses:
     BadRequest:

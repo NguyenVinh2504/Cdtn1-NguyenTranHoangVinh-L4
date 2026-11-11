@@ -92,7 +92,7 @@ npx swagger-ui-cli serve docs/api-docs/openapi.yaml
 | Success envelope | `{ "success": true, "data": … }` (+ `message`, + `total` for lists) |
 | Error envelope | `{ "success": false, "error": "<CODE>", "message": "…", "chiTiet": … }` |
 | Phone masking | `090****567` for the `TECHNICIAN` role (rule QT-15) |
-| Errors | 16 business error codes, mapped to HTTP by `HTTP_CODE_MAP` in `src/middlewares/errorHandler.middleware.js` |
+| Errors | 17 business error codes, mapped to HTTP by `HTTP_CODE_MAP` in `src/middlewares/errorHandler.middleware.js` |
 
 ---
 

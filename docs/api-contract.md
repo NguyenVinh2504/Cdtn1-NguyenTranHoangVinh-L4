@@ -35,9 +35,9 @@
   > (ví dụ `ticketId`, `customer.phone`). Tài liệu này đã sửa cho khớp mã nguồn.
 - **Chuẩn định dạng thời gian:** ISO 8601 kèm múi giờ, ví dụ: `2026-11-20T10:00:00+07:00`.
   API trả về theo chuẩn UTC (`...Z`).
-- **Phân trang (Pagination):** Áp dụng query parameters `page` (bắt đầu từ 1, mặc định 1) và
-  `limit` (mặc định 10, tối đa 100). Response trả về kèm **trường `total`** đếm tổng số bản ghi
-  khớp điều kiện lọc (không phải số bản ghi của trang hiện tại):
+- **Phân trang (Pagination):** Áp dụng query parameters `limit` (mặc định `50`) và `offset`
+  (mặc định `0`). Response trả về kèm **trường `total`** đếm tổng số bản ghi khớp điều kiện
+  lọc (không phải số bản ghi của lát cắt hiện tại):
   ```json
   {
     "success": true,
@@ -82,6 +82,7 @@ Nguồn: `HTTP_CODE_MAP` trong `src/middlewares/errorHandler.middleware.js`.
 | :--- | :---: | :--- |
 | `DU_LIEU_KHONG_HOP_LE` | 400 | Dữ liệu gửi lên không hợp lệ |
 | `THIEU_TRUONG_BAT_BUOC` | 400 | Thiếu trường bắt buộc |
+| `UU_TIEN_KHONG_HOP_LE` | 400 | Mức ưu tiên `priority` không thuộc `CAO`, `TRUNG_BINH`, `THAP` |
 | `XAC_THUC_KHONG_HOP_LE` | 401 | Chưa xác thực / sai thông tin đăng nhập |
 | `TOKEN_HET_HAN` | 401 | Token đã hết hạn |
 | `KHONG_CO_QUYEN` | 403 | Không đủ quyền theo vai trò hoặc theo chủ sở hữu (QT-14, A01) |
@@ -300,9 +301,10 @@ Bảng dưới đây là ánh xạ giữa đặc tả cũ và hệ thống thậ
 ```
 
 #### Phản hồi lỗi:
-- **`HTTP 400 Bad Request`** (`DU_LIEU_KHONG_HOP_LE`): Thiếu trường bắt buộc hoặc sai kiểu dữ liệu.
+- **`HTTP 400 Bad Request`** (`DU_LIEU_KHONG_HOP_LE`): `technicianId` thiếu hoặc không phải số nguyên dương.
 - **`HTTP 401 Unauthorized`** (`XAC_THUC_KHONG_HOP_LE`): Chưa xác thực.
-- **`HTTP 404 Not Found`** (`PHIEU_KHONG_TON_TAI` / `KTV_KHONG_TON_TAI`): Không tìm thấy phiếu hoặc kỹ thuật viên.
+- **`HTTP 404 Not Found`** (`PHIEU_KHONG_TON_TAI` / `KTV_KHONG_KHA_DUNG`): Không tìm thấy phiếu hoặc KTV không tồn tại / ngừng hoạt động.
+- **`HTTP 409 Conflict`** (`TRANG_THAI_KHONG_HOP_LE`): Trạng thái phiếu không phải `MOI` hoặc `DA_PHAN_CONG`.
 - **`HTTP 422 Unprocessable Entity`** (`KTV_KHONG_DU_TAY_NGHE`): Kỹ thuật viên không đạt yêu cầu tay nghề bậc 3 trở lên (QT-08).
   ```json
   {
@@ -419,17 +421,17 @@ Bảng dưới đây là ánh xạ giữa đặc tả cũ và hệ thống thậ
     "issueDesc": "May bi vao nuoc, khong len man hinh sau khi lau",
     "priority": "CAO",
     "status": "MOI",
-    "receivedAt": "2026-11-11T14:38:10.460Z",
-    "dueDate": "2026-11-12T14:38:10.415Z",
+    "receivedAt": "2026-11-11T17:13:04.268Z",
+    "dueDate": "2026-11-12T17:13:04.214Z",
     "closedAt": null,
     "statusHistory": [
-      { "at": "2026-11-11T14:38:10.460Z", "by": null, "to": "MOI", "from": null, "note": "Tiếp nhận phiếu mới tại trung tâm" }
+      { "at": "2026-11-11T17:13:04.268Z", "by": null, "to": "MOI", "from": null, "note": "Tiếp nhận phiếu mới tại trung tâm" }
     ],
     "appointmentAt": null,
     "appointmentStatus": null,
-    "customer": { "customerId": 3, "fullName": "Lê Thị Thu", "phone": "093****789", "email": "thu.le@gmail.com", "address": "Thủ Đức, TP.HCM", "segment": "MOI", "createdAt": "2026-11-11T13:55:20.553Z" },
-    "device": { "deviceId": 3, "customerId": 3, "serialNo": "MK-XIA14-3341", "productName": "Xiaomi 14 Ultra", "purchaseDate": null, "warrantyMonths": 18, "createdAt": "2026-11-11T13:55:20.566Z" },
-    "category": { "categoryId": 5, "categoryName": "PIN", "defaultPriority": "CAO", "isActive": true }
+    "customer": { "customerId": 3, "fullName": "Lê Thị Thu", "phone": "0933456789", "email": "thu.le@gmail.com", "address": "Thủ Đức, TP.HCM", "segment": "MOI", "createdAt": "2026-11-11T17:12:17.676Z" },
+    "device": { "deviceId": 3, "customerId": 3, "serialNo": "MK-XIA14-3341", "productName": "Xiaomi 14 Ultra", "purchaseDate": null, "warrantyMonths": 18, "createdAt": "2026-11-11T17:12:17.688Z" },
+    "category": { "categoryId": 5, "categoryName": "NUOC_VAO", "defaultPriority": "CAO", "isActive": true }
   }
 }
 ```
@@ -604,9 +606,9 @@ Bảng dưới đây là ánh xạ giữa đặc tả cũ và hệ thống thậ
 | :--- | :---: | :---: | :--- | :--- |
 | `id` (path, phiếu) | **Có** | Integer | Số nguyên dương > 0, phải tồn tại trong bảng `ticket` | `PHIEU_KHONG_TON_TAI` — "Không tìm thấy phiếu bảo hành ID {id}" |
 | `id` (path, KTV) | **Có** | Integer | Số nguyên dương > 0, phải tồn tại trong bảng `technician` | `KTV_KHONG_TON_TAI` — "Không tìm thấy kỹ thuật viên ID {id}" |
-| `technicianId` | **Có** *(khi phân công)* | Integer | Số nguyên dương > 0, phải tồn tại và `isActive = true` | `KTV_KHONG_TON_TAI` |
-| `technicianId` | **Có** *(khi tạo KTV)* | Integer | Số nguyên dương > 0, `centerId` phải tồn tại | `TRUNG_TAM_KHONG_TON_TAI` |
-| `note` | **Có** *(khi phân công/điều chuyển)* | String | Bắt buộc khi phân công (QT-07) | `THIEU_TRUONG_BAT_BUOC` |
+| `technicianId` | **Có** *(khi phân công)* | Integer | Số nguyên dương > 0, phải tồn tại và `isActive = true` | `KTV_KHONG_KHA_DUNG` |
+| `centerId` | **Có** *(khi tạo KTV)* | Integer | Số nguyên dương > 0, phải tham chiếu trung tâm tồn tại | `DU_LIEU_KHONG_HOP_LE` (kiểu/giá trị) · `LOI_HE_THONG` (nếu sai khoá ngoại DB) |
+| `note` | Không *(ở validator; mặc định `"Phân công kỹ thuật viên"`; bắt buộc trên UI khi điều chuyển theo QT-07)* | String | Tự do | — |
 | `note` | Không *(khi đổi trạng thái)* | String | Tự do | — |
 | `customerId` | **Có** *(khi tạo phiếu)* | Integer | Số nguyên dương > 0 | "Mã khách hàng phải là số nguyên dương" |
 | `deviceId` | **Có** *(khi tạo phiếu)* | Integer | Số nguyên dương > 0 | "Mã thiết bị phải là số nguyên dương" |

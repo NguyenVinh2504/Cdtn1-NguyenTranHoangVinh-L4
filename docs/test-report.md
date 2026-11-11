@@ -37,7 +37,7 @@
 | **TC-12** | *(KHÔNG có test cũ)* | `prisma/seed.js` | 5 | — (seed) | Chạy thủ công `npm run db:seed` lần 2 (idempotent) |
 
 **Tổng: 10 test map từ test cũ (TC-01…TC-10) + 2 test mới (TC-11, TC-12) = 12 mã test case.**
-_(Số hàm `test()` thực thi: **16** hàm trong `tests/bt3-unit.test.js` — 10 mã TC cốt lõi → **11 hàm** (`TC-01` tách 2 nhánh: Thứ 2 / Chủ Nhật; nhánh *trùng lịch* của `TC-04` là mã riêng `TC-09`) + 5 mã phụ `TC-P2`…`TC-P6` → 16 hàm; **3** hàm trong `tests/bt3-new.test.js` — `TC-11` × 2 + `TC-P1`. Tổng bộ BT3 = **19** hàm. Xem `docs/test-plan.md` Mục 2.1.)_
+_(Số hàm `test()` thực thi: **16** hàm trong `tests/bt3-unit.test.js` — 10 mã TC cốt lõi → **11 hàm** (`TC-01` tách 2 nhánh: Thứ 2 / Chủ Nhật; nhánh *trùng lịch* của `TC-04` là mã riêng `TC-09`) + 5 mã phụ `TC-P2`…`TC-P6` → 16 hàm; **3** hàm trong `tests/bt3-new.test.js` — `TC-11` × 2 + `TC-P1`; **4** hàm trong `tests/bt3-bugfix.test.js` — `TC-13`…`TC-15` ở Phụ lục E. Tổng bộ BT3 = **23** hàm, cộng 29 hàm hồi quy BT2 = **52** hàm toàn suite. Xem `docs/test-plan.md` Mục 2.1.)_
 
 ### Truy vết quy tắc nghiệp vụ → loại test
 

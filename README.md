@@ -62,7 +62,7 @@ Hệ thống Smart CRM - Luồng L4 giải quyết trọn vẹn bài toán đi�
 
 Theo góp ý đánh giá Bài tập 1, hệ thống đã chuẩn hóa và giải quyết triệt để 2 mâu thuẫn dữ liệu (ghi chép chi tiết tại `docs/thay-doi-thiet-ke.md`):
 
-1. **Thống nhất lưu lịch sử trạng thái:** Loại bỏ hoàn toàn bảng độc lập `ticket_status_log`, thống nhất sử dụng duy nhất cột `status_history` kiểu `JSONB` trong bảng `ticket`. Toàn bộ SRS (AC2.1, QT-06), Use Case UC2 (hậu điều kiện & bước 5), câu lập luận kiến trúc 2 và mã nguồn đã được sửa khớp 100%. View `v_ticket_status_log` được duy trì để phẳng hóa khi cần làm báo cáo.
+1. **Thống nhất lưu lịch sử trạng thái:** Loại bỏ hoàn toàn bảng độc lập `ticket_status_log`, thống nhất sử dụng duy nhất cột `status_history` kiểu `JSONB` trong bảng `ticket`. Toàn bộ SRS (AC2.1, QT-06), Use Case UC2 (hậu điều kiện & bước 5), câu lập luận kiến trúc 2 và mã nguồn đã được sửa khớp 100%, đọc trực tiếp từ cột JSONB qua repository (không tạo VIEW rời trong migration).
 2. **Chuẩn hóa bậc tay nghề KTV:** Thay vì lưu tay nghề theo từng nhóm sự cố ở bảng phụ (`technician_skill`), chuẩn hóa thành một điểm số đánh giá năng lực chuyên môn `proficiency` (thang 1–5, yêu cầu `proficiency >= 3`) lưu trực tiếp trong bảng `technician`. Toàn bộ tài liệu (SRS bảng thuật ngữ, AC2.2, QT-08) và mã nguồn kiểm tra đồng nhất theo cột này.
 
 ---
@@ -213,26 +213,36 @@ npm test
 
 ### 5.1. Kịch bản cURL kiểm thử nhanh các Endpoint CRUD & Quy tắc nghiệp vụ (Dành cho Giảng viên chấm)
 
-Sau khi khởi động backend (`npm start`), Giảng viên có thể chạy các lệnh `curl` sau để kiểm chứng:
+Sau khi hệ thống đã khởi động (Docker Compose hoặc `npm start`), lấy JWT token trước rồi gọi các lệnh `curl` dưới đây để kiểm chứng:
+
+```bash
+# 0. Đăng nhập lấy JWT token (Quản lý trung tâm 2)
+TOKEN=$(curl -s -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"manager_tt2","password":"password123"}' | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8'));console.log(d.data.token)")
+```
 
 #### A. Thực thể 1: Ticket (Phiếu bảo hành) — Đủ 4 thao tác CRUD:
 ```bash
 # 1. Tạo (Create - POST)
 curl -X POST http://localhost:3000/api/tickets \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"customerId":1,"deviceId":1,"centerId":2,"categoryId":1,"issueDesc":"Màn hình cảm ứng bị loạn điểm và chớp nháy liên tục","priority":"CAO"}'
 
 # 2. Đọc (Read - GET)
-curl http://localhost:3000/api/tickets?centerId=2
-curl http://localhost:3000/api/tickets/1
+curl "http://localhost:3000/api/tickets?centerId=2" -H "Authorization: Bearer $TOKEN"
+curl http://localhost:3000/api/tickets/1 -H "Authorization: Bearer $TOKEN"
 
 # 3. Sửa (Update - PUT & Nghiệp vụ phân công)
 curl -X PUT http://localhost:3000/api/tickets/1 \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"issueDesc":"Màn hình xuất hiện thêm sọc đen góc trái","priority":"TRUNG_BINH"}'
 
 # 4. Xóa (Delete - DELETE: Chỉ cho phép xóa phiếu MOI)
 curl -X DELETE http://localhost:3000/api/tickets/2 \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"reason":"Khách hàng hủy sửa chữa mang máy về"}'
 ```
@@ -241,31 +251,35 @@ curl -X DELETE http://localhost:3000/api/tickets/2 \
 ```bash
 # 1. Tạo (Create - POST)
 curl -X POST http://localhost:3000/api/technicians \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"employeeId":"NV-KTV-099","fullName":"Trần Văn Thử Nghiệm","centerId":2,"level":"TRUNG_CAP","proficiency":4}'
 
 # 2. Đọc (Read - GET)
-curl http://localhost:3000/api/technicians?centerId=2
-curl http://localhost:3000/api/technicians/3
+curl "http://localhost:3000/api/technicians?centerId=2" -H "Authorization: Bearer $TOKEN"
+curl http://localhost:3000/api/technicians/3 -H "Authorization: Bearer $TOKEN"
 
 # 3. Sửa (Update - PUT)
 curl -X PUT http://localhost:3000/api/technicians/3 \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"level":"CAO_CAP","proficiency":5}'
 
 # 4. Xóa (Delete - DELETE: Soft delete chuyển isActive = false theo QT-13)
-curl -X DELETE http://localhost:3000/api/technicians/6
+curl -X DELETE http://localhost:3000/api/technicians/6 -H "Authorization: Bearer $TOKEN"
 ```
 
 #### C. Kiểm chứng 2 Quy tắc nghiệp vụ thật:
 ```bash
 # Quy tắc 1 (QT-08): Phân công KTV có proficiency = 2 (< 3) -> Từ chối HTTP 422 KTV_KHONG_DU_TAY_NGHE
 curl -X POST http://localhost:3000/api/tickets/1/assign \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"technicianId":6}'
+  -d '{"technicianId":6,"note":"Thử phân công KTV sơ cấp"}'
 
 # Quy tắc 2 (QT-06): Chuyển trạng thái ngược từ HOAN_TAT về MOI -> Từ chối HTTP 409 TRANG_THAI_KHONG_HOP_LE
 curl -X PATCH http://localhost:3000/api/tickets/4/status \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"status":"MOI"}'
 ```
@@ -322,12 +336,19 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── usecase_spec.md               # Đặc tả chi tiết Use Case UC2, UC6, UC7
 │   ├── architecture.md               # Kiến trúc 3 tầng, 4 câu lập luận NFR
 │   ├── erd.dbml                      # Mô hình quan hệ 6 bảng chuẩn 3NF
-│   ├── thay-doi-thiet-ke.md          # Nhật ký thay đổi thiết kế theo chuẩn 3 dòng (Bắt buộc BT2)
-│   ├── ai-disclosure.md              # Bảng khai báo AI 4 cột cập nhật cho BT2
+│   ├── thay-doi-thiet-ke.md          # Nhật ký thay đổi thiết kế theo chuẩn 3 dòng (BT2 & BT3)
+│   ├── ai-disclosure.md              # Bảng khai báo AI 4 cột cập nhật cho BT2 & BT3
+│   ├── test-plan.md                  # Kế hoạch kiểm thử rút gọn (4 mục)
+│   ├── test-report.md                # Báo cáo 12 test case đủ 8 cột + Phụ lục E
+│   ├── bug-log.md                    # Bug Log đã sửa kèm link commit
+│   ├── deployment-guide.md           # Hướng dẫn triển khai bằng tiếng Anh (5 mục)
+│   ├── checklist-bao-mat.md          # Checklist bảo mật 7 mục kèm minh chứng
+│   ├── api-docs/                     # API Reference 17 endpoint + OpenAPI 3.0.3
 │   └── api-contract.md               # Hợp đồng API REST/JSON
 ├── prisma/
 │   ├── migrations/                   # DDL versioned: tạo 6 bảng từ CSDL trống (S3)
 │   ├── schema.prisma                 # Lược đồ Prisma 6 bảng quan hệ + JSONB status_history
+│   ├── sync-sequences.js             # Đồng bộ sequence PostgreSQL sau seed (BUG-10)
 │   └── seed.js                       # Tệp nạp dữ liệu mẫu idempotent (6 TT, KTV, Khách, Thiết bị, Phiếu)
 ├── src/                              # Backend Node.js / Express (Tách 3 tầng sạch)
 │   ├── errors/AppError.js            # Lớp lỗi miền nghiệp vụ có mã
@@ -336,9 +357,13 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── services/                     # Tầng 2: Toàn bộ quy tắc nghiệp vụ (QT-08, QT-06, QT-04, QT-11)
 │   ├── repositories/                 # Tầng 3: Truy xuất CSDL qua Prisma Client
 │   ├── middlewares/                  # Auth JWT, phoneMasker (QT-15), errorHandler tập trung
-│   ├── app.js                        # Ghép nối các tầng và phục vụ frontend build
+│   ├── utils/sla.js                  # Tính hạn SLA theo giờ làm việc (bỏ qua Chủ Nhật)
+│   ├── app.js                        # Ghép nối các tầng và cấu hình middleware
 │   └── server.js                     # Khởi động dịch vụ trên cổng 3000
 ├── tests/                            # Bộ kiểm thử tự động Jest (52 test cases, 7 suite)
+│   ├── bt3-unit.test.js              # 10 mã TC unit + TC phụ của Test Report BT3
+│   ├── bt3-new.test.js               # TC-11 (A01 đọc/ghi) & TC-P1 (JWT bắt buộc)
+│   ├── bt3-bugfix.test.js            # TC-13..TC-15 hồi quy lỗi phép thử máy trắng
 │   ├── ticket.service.test.js        # Test nghiệp vụ phân công, giá trị biên, dữ liệu sai
 │   ├── technician.service.test.js    # Test quản lý KTV và cân bằng tải
 │   ├── ticket.validator.test.js      # Test kiểm tra dữ liệu đầu vào

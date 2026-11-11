@@ -22,7 +22,7 @@ so that you can tell whether the system is working without asking anyone.
 | Git | 2.30 or newer | `git --version` |
 | Free disk space | **~2.5 GB** (Docker images + PostgreSQL volume + Node build cache) | — |
 | Free RAM | 2 GB available to Docker | — |
-| Free host ports | **3000** (Backend API) and **5173** (Frontend Web UI) must be free | see Troubleshooting |
+| Free host ports | **3000** (Backend API), **5173** (Frontend Web UI), and **5432** (PostgreSQL) must be free | see Troubleshooting |
 | Node.js / PostgreSQL | **Not required.** The container images contain Node.js 20 LTS and PostgreSQL 16 | — |
 
 Everything else (runtime, database engine, migration, sample data seeding) is packaged inside
@@ -281,7 +281,7 @@ Browse to <http://localhost:5173> and sign in with `manager_tt2` / `password123`
 
 | Symptom | Likely cause | Fix |
 | :--- | :--- | :--- |
-| `Bind for 0.0.0.0:3000 failed: port is already allocated` | Host port 3000 (or 5173) is taken by another program | Change `API_PORT=3001` (and/or `WEB_PORT=5174`) in `.env`, then run `docker compose up -d` again |
+| `Bind for 0.0.0.0:3000 failed: port is already allocated` | Host port 3000, 5173, or 5432 is taken by another program | Change `API_PORT=3001`, `WEB_PORT=5174`, or `DB_PORT=5433` in `.env`, then run `docker compose up -d` again |
 | `relation "ticket" does not exist` | The database volume is stale, or the migration did not run | `docker compose down -v && docker compose up -d --build` to recreate a clean volume |
 | `api` container exits right after starting | The database was not ready yet, or `DATABASE_URL` in `.env` points to `localhost` | Make sure `DB_HOST=postgres` in `.env` (not `localhost`) and that `postgres` reports `healthy` in `docker compose ps` |
 | `Error: P2002 Unique constraint failed on the fields: (ticket_id)` | The volume was created by an older image whose seed did not synchronise the PostgreSQL sequences | `docker compose down -v && docker compose up -d --build` |

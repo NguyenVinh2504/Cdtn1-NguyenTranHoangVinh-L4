@@ -27,10 +27,10 @@
 | 1 | Không có secret nào trong repo | A02 | **ĐÃ LÀM** |
 | 2 | Dữ liệu vào được kiểm ở tầng ứng dụng | A05 | **ĐÃ LÀM** |
 | 3 | Kiểm soát truy cập theo chủ sở hữu | A01 | **ĐÃ LÀM** |
-| 4 | Mật khẩu và dữ liệu nhạy cảm được băm/mã hoá | A04 · A07 | **ĐÃ LÀM** |
+| 4 | Mật khẩu và dữ liệu nhạy cảm được băm/mã hoá | A04 · A07 | **ĐÃ LÀM** *(tài khoản demo in-memory & che SĐT; chưa có bảng `users`)* |
 | 5 | Thông báo lỗi không lộ cấu trúc bên trong | A10 · A02 | **ĐÃ LÀM** |
 | 6 | Nhật ký không ghi secret hay dữ liệu cá nhân | A09 | **ĐÃ LÀM** |
-| 7 | Phụ thuộc được ghim phiên bản và đã kiểm cảnh báo lỗ hổng cơ bản | A03 | **ĐÃ LÀM** |
+| 7 | Phụ thuộc được ghim phiên bản và đã kiểm cảnh báo lỗ hổng cơ bản | A03 | **ĐÃ LÀM** *(runtime sạch; devDependencies còn cảnh báo)* |
 
 ---
 
@@ -167,8 +167,10 @@ $ grep -n "password:" src/services/auth.service.js
 
 **Cơ sở trong mã nguồn:**
 
-- `src/services/auth.service.js` lưu trường `passwordHash` được tạo bằng
-  `bcrypt.hashSync('password123', 10)` — **chỉ còn chuỗi băm bcrypt**, không còn mật khẩu gốc.
+- `src/services/auth.service.js` không còn lưu trường `password` dạng plaintext; cấu trúc
+  `DEMO_USERS` lưu `passwordHash` sinh bằng `bcrypt.hashSync('password123', 10)` từ mật khẩu
+  tài khoản mẫu công khai khi nạp module. *(Lưu ý trung thực: PostgreSQL hiện có 6 bảng
+  nghiệp vụ, chưa tách bảng `users` riêng — đã ghi nhận trong mục Những gì hệ thống chưa làm.)*
 - Xác thực dùng `bcrypt.compareSync(password, user.passwordHash)`.
 - Chuỗi băm bcrypt có tiền tố `$2a$10$` — **không đọc được ngược** thành mật khẩu.
 - Thư viện `bcryptjs` đã được khai báo trong `package.json` (`^2.4.3`) nên khoá phiên bản
@@ -240,7 +242,7 @@ khách hàng dạng đầy đủ.
 
 ---
 
-## 7. Phụ thuộc được ghim phiên bản và đã kiểm cảnh báo lỗ hổng cơ bản — ĐÃ LÀM
+## 7. Phụ thuộc được ghim phiên bản và đã kiểm cảnh báo lỗ hổng cơ bản — ĐÃ LÀM (runtime 0 lỗ hổng; devDependencies còn cảnh báo)
 
 **Minh chứng (lệnh đã chạy và kết quả thật):**
 
@@ -249,23 +251,31 @@ $ npm audit --omit=dev
 found 0 vulnerabilities
 
 $ npm audit
-found 0 vulnerabilities
+# 8 vulnerabilities (6 low, 2 moderate) — toàn bộ nằm ở devDependencies:
+#   deepmerge >=4.2.0 (qua jest / jest-config)
+#   minimatch 7.0.0 - 11.0.0 (qua nodemon)
+
+$ npm --prefix frontend audit
+# 2 vulnerabilities (1 moderate, 1 high) — nằm ở devDependencies (build-time):
+#   esbuild <=0.24.2 (qua vite)
 ```
 
 **Cơ sở trong mã nguồn:**
 
-- `package-lock.json` được commit → mọi phiên bản phụ thuộc đều **ghim chính xác** (không dùng
-  dấu `^` cho bước cài đặt trong container, vì Dockerfile chạy `npm ci`).
-- `Dockerfile` dùng `npm ci` (không `npm install`) → cài đúng theo tệp khoá phiên bản, mọi
-  máy dựng giống nhau.
-- Base image được ghim phiên bản cụ thể: `node:20-alpine`, `postgres:16-alpine`, `nginx:alpine`.
+- `package-lock.json` và `frontend/package-lock.json` đã được commit → mọi phiên bản phụ thuộc
+  đều **ghim chính xác** (`Dockerfile` và `frontend/Dockerfile` dùng `npm ci`, cài đúng theo
+  tệp khoá phiên bản).
+- Ảnh cơ sở được ghim phiên bản cụ thể: `node:20-alpine`, `postgres:16-alpine`, `nginx:alpine`.
+- Gói phục vụ **chạy thật (production runtime)** khi bỏ qua `devDependencies` (`npm audit --omit=dev`)
+  có **0 lỗ hổng**. Các cảnh báo ở `npm audit` toàn phần chỉ nằm ở công cụ dev/test/build
+  (`jest`, `nodemon`, `vite`/`esbuild`), không chạy trong tiến trình phục vụ request của người dùng.
 - Bản quản lý phụ thuộc: `npm audit` (Node) — không có hệ sinh thái Python nên không cần
   `pip-audit`.
 
-**Kế hoạch xử lý cảnh báo còn lại:** hiện **không có** cảnh báo nào (`0 vulnerabilities`).
-Nếu sau này `npm audit` báo cảnh báo, kế hoạch là nâng phiên bản gói tương ứng trong
-`package.json`, chạy lại `npm test` để chắc chắn 52 test vẫn PASS, rồi commit kèm link
-commit trong Bug Log.
+**Kế hoạch xử lý cảnh báo còn lại:** Không dùng `npm audit fix --force` ngay lúc này vì sẽ tự
+động hạ/nâng major version có breaking change (`jest@25.1.0`, `vite@8.3.8`). Kế hoạch cho
+giai đoạn tiếp theo (Chuyên đề tốt nghiệp 2): nâng cấp `vite` lên nhánh 6+/7+ và `nodemon` /
+`jest` theo phiên bản vá mới, rồi chạy lại `npm test` và `npm run build` để kiểm tra tương thích.
 
 ---
 
