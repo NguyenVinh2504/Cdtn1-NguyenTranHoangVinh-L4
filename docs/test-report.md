@@ -9,7 +9,7 @@
 **Cột 7 (Kết quả thực tế) và cột 8 (PASS/FAIL):** `TC-01`…`TC-10` (unit, `tests/bt3-unit.test.js`) và `TC-11` (`tests/bt3-new.test.js`, test SEC-01 + SEC-03) **đã chạy thật** và ghi kết quả bên dưới. `TC-12` (chạy seed lần 2 trên CSDL thật) chạy thủ công, có ảnh chụp terminal. Mọi mục cột 7–8 đều khớp kết quả thực tế của lần chạy.
 
 **Nguồn chạy:**
-- `TC-01`…`TC-10` → `tests/bt3-unit.test.js` (mock repository, **không cần CSDL**; TC-01 có 2 nhánh — Thứ 2 / Chủ Nhật; TC-04 có 2 nhánh trong 2 `test()` riêng, TC-09 là nhánh xung đột)
+- `TC-01`…`TC-10` → `tests/bt3-unit.test.js` (mock repository, **không cần CSDL**; `TC-01` có 2 nhánh — Thứ 2 / Chủ Nhật; `TC-04` là nhánh *không trùng*, nhánh *trùng* là mã riêng `TC-09`)
 - `TC-11` → `tests/bt3-new.test.js` test SEC-01 (đường **ghi**) + test SEC-03 (đường **đọc**) (Supertest + `createApp()` thật + repository giả in-memory, **không cần CSDL**)
 - `TC-12` → `prisma/seed.js` chạy lần 2 thủ công trên PostgreSQL thật
 - Phụ lục hồi quy (không tính vào 12 TC chính): `TC-P1` = SEC-02 (không token → 401, truy vết BUG-05) · `TC-P2` = U10 (ticketId không tồn tại → `PHIEU_KHONG_TON_TAI`) · `TC-P3` = BUG-08 (chuyển trạng thái tự thân → `TRANG_THAI_KHONG_HOP_LE`)
@@ -36,7 +36,7 @@
 | **TC-12** | *(KHÔNG có test cũ)* | `prisma/seed.js` | 5 | — (seed) | Chạy thủ công `npm run db:seed` lần 2 (idempotent) |
 
 **Tổng: 10 test map từ test cũ (TC-01…TC-10) + 2 test mới (TC-11, TC-12) = 12 mã test case.**
-_(Số hàm `test()` thực thi: **16** hàm trong `tests/bt3-unit.test.js` — 10 mã TC cốt lõi (TC-01 và TC-04 mỗi mã có 2 nhánh → 12 hàm) + `TC-P2`…`TC-P6` (4 mã phụ) → 16 hàm; **3** hàm trong `tests/bt3-new.test.js` — `TC-11` × 2 + `TC-P1`. Tổng bộ BT3 = **19** hàm. Xem `docs/test-plan.md` Mục 2.1.)_
+_(Số hàm `test()` thực thi: **16** hàm trong `tests/bt3-unit.test.js` — 10 mã TC cốt lõi → **11 hàm** (`TC-01` tách 2 nhánh: Thứ 2 / Chủ Nhật; nhánh *trùng lịch* của `TC-04` là mã riêng `TC-09`) + 5 mã phụ `TC-P2`…`TC-P6` → 16 hàm; **3** hàm trong `tests/bt3-new.test.js` — `TC-11` × 2 + `TC-P1`. Tổng bộ BT3 = **19** hàm. Xem `docs/test-plan.md` Mục 2.1.)_
 
 ### Truy vết quy tắc nghiệp vụ → loại test
 

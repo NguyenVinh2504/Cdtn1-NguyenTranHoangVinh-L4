@@ -57,7 +57,7 @@ Ngoài 5 quy tắc trọng tâm ở bảng trên, bộ kiểm thử còn bao ph�
 
 | Tầng | Mục đích | Số lượng | Công cụ | Cần CSDL thật? | Vị trí mã nguồn |
 |:---|:---|:---:|:---|:---:|:---|
-| **Unit test** | Kiểm 1 hàm / 1 lớp service, thay thế Repository bằng đối tượng giả (Mock) | **10 mã TC** / **16 hàm test()** | Jest 29 + `jest.fn()` | Không | `tests/bt3-unit.test.js` (TC-01…TC-10 — TC-01 và TC-04 mỗi mã có 2 nhánh → 12 hàm; cộng 5 mã TC phụ TC-P2…TC-P6 → 16 hàm) |
+| **Unit test** | Kiểm 1 hàm / 1 lớp service, thay thế Repository bằng đối tượng giả (Mock) | **10 mã TC** / **16 hàm test()** | Jest 29 + `jest.fn()` | Không | `tests/bt3-unit.test.js` (TC-01…TC-10 — `TC-01` tách thành 2 hàm (nhánh A: Thứ 2 / nhánh B: Chủ Nhật); `TC-04` có 1 hàm (nhánh 1: không trùng), nhánh 2 là `TC-09` với mã riêng → 10 mã thành **11 hàm**; cộng 5 mã TC phụ TC-P2…TC-P6 → **16 hàm**) |
 | **API test** | Gọi hệ thống qua HTTP như người dùng thật (Express + Supertest; service + middleware thật, repository giả in-memory) | **1 mã TC** / **1 hàm test()** | Jest 29 + Supertest 7 | Không (inject repository giả qua `createApp()`) | `tests/bt3-new.test.js` (TC-11 — gồm cả đường ghi A01 và đường đọc A01 trong cùng 1 hàm test()) |
 | **Tái lập thủ công** | Chạy lại `node prisma/seed.js` lần 2 trên PostgreSQL thật, đếm 6 bảng trước/sau | **1 mã TC** | `node` + Prisma / `psql` | **Có** | `prisma/seed.js` (TC-12, thủ công + ảnh chụp) |
 | | | **12 mã test case** | | | |
@@ -67,7 +67,7 @@ Ngoài 5 quy tắc trọng tâm ở bảng trên, bộ kiểm thử còn bao ph�
 > | Đơn vị đếm | Số lượng | Giải thích |
 > |:---|:---:|:---|
 > | **Mã test case cốt lõi (TC-01…TC-12)** | **12** | Đây là con số báo cáo trong `docs/test-report.md` và nằm trong mục tiêu "10–12 test case" của đề BT3 mục 2.2. |
-> | **Hàm `test()` trong `tests/bt3-unit.test.js`** | **16** | 10 mã TC cốt lõi + 6 mã TC phụ. `TC-01` (nhánh A: Thứ 2 / nhánh B: Chủ Nhật) và `TC-04` (nhánh 1: không trùng / nhánh 2: trùng) mỗi mã tách thành 2 hàm `test()` riêng → 10 mã thành 12 hàm; cộng `TC-P2`, `TC-P3`, `TC-P4`, `TC-P5`, `TC-P6` → **16 hàm**. |
+> | **Hàm `test()` trong `tests/bt3-unit.test.js`** | **16** | 10 mã TC cốt lõi → **11 hàm** (`TC-01` tách thành 2 hàm: nhánh A: Thứ 2 / nhánh B: Chủ Nhật; 9 mã còn lại 1 hàm mỗi mã — nhánh *trùng lịch* của `TC-04` được tách thành mã riêng `TC-09` để giữ 12 mã TC đúng yêu cầu đề) + 5 mã TC phụ `TC-P2`, `TC-P3`, `TC-P4`, `TC-P5`, `TC-P6` → **16 hàm**. |
 > | **Hàm `test()` trong `tests/bt3-new.test.js`** | **3** | `TC-11` (TC-SEC-01: đường ghi A01 → 403) · `TC-11` (TC-SEC-03: đường đọc A01 → 403 × 3 endpoint) · `TC-P1` (TC-SEC-02: không token → 401). |
 > | **Tổng số hàm `test()` của bộ BT3** | **19** | 16 (unit) + 3 (API) |
 > | **Tổng số hàm `test()` của toàn bộ suite `npm test`** | **48** | 29 hàm hồi quy Bài tập 2 (`ticket.service` 12 + `technician.service` 4 + `api.routes` 8 + `validator` 5) + 19 hàm BT3. Lệnh `npm test` báo cáo `Tests: 48 passed, 48 total`. |
@@ -101,7 +101,7 @@ Ngoài 5 quy tắc trọng tâm ở bảng trên, bộ kiểm thử còn bao ph�
 | **TC-01** | Unit | 1 | **QT-04** | Tính hạn SLA tự động theo **giờ làm việc** với 3 mức ưu tiên. Nhánh A: tiếp nhận **Thứ 2** → hạn = đúng số giờ làm việc. Nhánh B: tiếp nhận **Chủ Nhật** → giờ Chủ Nhật **không** được tính | Nhánh A: `CAO` +24h (86 400 000 ms) · `TRUNG_BINH` +72h (259 200 000 ms) · `THAP` +120h (432 000 000 ms). Nhánh B: `CAO` từ `2026-10-25T03:00:00Z` → `2026-10-26T17:00:00.000Z` (**> 24h lịch**, vì đã bỏ qua Chủ Nhật) |
 | **TC-02** | Unit | 1 | **QT-08** | Phân công KTV `proficiency = 5`, cùng trung tâm | `status = DA_PHAN_CONG`, `technicianId` đúng, `status_history` dài +1 |
 | **TC-03** | Unit | 1 | **QT-04** | Cập nhật ưu tiên → tự động tính lại hạn SLA theo giờ làm việc (`CAO` → `TRUNG_BINH` = +72h làm việc) | `priority = TRUNG_BINH`, `dueDate = 2026-10-29T03:00:00.000Z` (Thứ 2 10:00 VN → Thứ 5 10:00 VN) |
-| **TC-04** | Unit | 1 + 3 | **FR4** | (a) Đặt lịch hẹn khung giờ **không** trùng → lưu thành công; (b) khung giờ trùng → từ chối | (a) `appointmentAt` + `SCHEDULED` OK; (b) `LICH_HEN_XUNG_DOT` + `update` 0 lần |
+| **TC-04** | Unit | 1 | **FR4** | Đặt lịch hẹn khung giờ **không** trùng → lưu thành công. (Nhánh *trùng lịch* → từ chối là mã riêng `TC-09`) | `appointmentAt` + `SCHEDULED` OK, `update` gọi 1 lần |
 | **TC-05** | Unit | 1 | **QT-15** | Che số điện thoại ở tầng middleware: `0901234567` | Trả về đúng `090****567`, giữ nguyên kiểu `Date` |
 | **TC-06** | Unit | 2 | **QT-08** | **Biên đạt:** KTV `proficiency = 3` (đúng ngưỡng tối thiểu) | Phân công **thành công**, `status = DA_PHAN_CONG` |
 | **TC-07** | Unit | 2 | **QT-08** | **Biên rớt:** KTV `proficiency = 2` (ngay dưới ngưỡng) | Từ chối: mã `KTV_KHONG_DU_TAY_NGHE` + message chứa "proficiency tối thiểu từ 3 trở lên"; phiếu giữ `MOI` |
@@ -122,7 +122,7 @@ _SRS `docs/srs.md` Mục 5 liệt kê **9 quy tắc QT** đã hiện thực: QT-
 | **QT-08** | Ràng buộc năng lực & địa bàn | `TC-02`, `TC-06`, `TC-07`, `TC-10` | ✅ Có test luồng đúng + 2 test biên + 1 test dữ liệu sai |
 | **QT-14** | Phạm vi dữ liệu theo vai trò (A01) | `TC-11` (đường ghi + đường đọc) | ✅ Có test bảo mật |
 | **QT-15** | Bảo mật thông tin khách hàng (che SĐT) | `TC-05` | ✅ Có test luồng đúng |
-| **FR4** | Quản lý lịch hẹn & kiểm tra trùng lịch | `TC-04` (2 nhánh), `TC-09` | ✅ Có test luồng đúng **và** test dữ liệu sai |
+| **FR4** | Quản lý lịch hẹn & kiểm tra trùng lịch | `TC-04` (không trùng), `TC-09` (trùng) | ✅ Có test luồng đúng **và** test dữ liệu sai |
 | **QT-07** | Phân công đơn nhất, bắt buộc `note` khi điều chuyển KTV | `TC-P4` | ✅ **Có test** — điều chuyển KTV trên phiếu `DA_PHAN_CONG` phải ghi kèm `note` lý do **không rỗng** vào `status_history`. |
 | **QT-11** | Chống quá tải KTV (`KTV_QUA_TAI`) | `TC-P5` (biên đạt 8 phiếu), `TC-P6` (biên rớt 7 phiếu) | ✅ **Có test ở cả hai bên ranh giới** — 8 phiếu mở → `KTV_QUA_TAI` + không update dữ liệu; 7 phiếu mở → phân công thành công. |
 | **QT-13** | Xóa mềm (`is_active = false`) | `TC-TECH-3` (`tests/technician.service.test.js`) | ✅ **Có test** — assert `isActive = false` sau `softDeleteTechnician()`. Đây là test hồi quy của bộ BT2, chạy cùng `npm test`. |
@@ -286,7 +286,7 @@ npx jest tests/bt3-unit.test.js -t "TC-P6"    # QT-11 — biên rớt 7 phiếu 
 | `TC-01` | `npx jest tests/bt3-unit.test.js -t "TC-01"` | 2 test PASS (nhánh A: Thứ 2 · nhánh B: Chủ Nhật) |
 | `TC-02` | `npx jest tests/bt3-unit.test.js -t "TC-02"` | 1 test PASS |
 | `TC-03` | `npx jest tests/bt3-unit.test.js -t "TC-03"` | 1 test PASS |
-| `TC-04` | `npx jest tests/bt3-unit.test.js -t "TC-04"` | 2 test PASS (nhánh 1: không trùng · nhánh 2: trùng) |
+| `TC-04` | `npx jest tests/bt3-unit.test.js -t "TC-04"` | 1 test PASS (nhánh 1: không trùng — nhánh 2 *trùng* là mã `TC-09`) |
 | `TC-05` | `npx jest tests/bt3-unit.test.js -t "TC-05"` | 1 test PASS |
 | `TC-06` | `npx jest tests/bt3-unit.test.js -t "TC-06"` | 1 test PASS |
 | `TC-07` | `npx jest tests/bt3-unit.test.js -t "TC-07"` | 1 test PASS |
@@ -302,7 +302,7 @@ npx jest tests/bt3-unit.test.js -t "TC-P6"    # QT-11 — biên rớt 7 phiếu 
 | `TC-P5` | `npx jest tests/bt3-unit.test.js -t "TC-P5"` | 1 test PASS |
 | `TC-P6` | `npx jest tests/bt3-unit.test.js -t "TC-P6"` | 1 test PASS |
 
-> **Lưu ý:** `TC-01` và `TC-04` là **2 nhánh trong cùng 1 mã test case** (mã trong Test Report), nên lệnh `-t "TC-01"` sẽ chạy **2 hàm `test()`** — đúng như thiết kế, không phải lỗi.
+> **Lưu ý:** `TC-01` là **2 nhánh trong cùng 1 mã test case** (mã trong Test Report), nên lệnh `-t "TC-01"` sẽ chạy **2 hàm `test()`** — đúng như thiết kế, không phải lỗi. `TC-11` cũng gồm 2 hàm (đường ghi A01 + đường đọc A01) trong cùng 1 mã.
 
 **Các lệnh phụ trợ (không thay thế lệnh chính):**
 

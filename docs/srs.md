@@ -188,7 +188,7 @@ _Bảng đối chiếu xuyên suốt giữa Yêu cầu chức năng ↔ User Sto
 | **FR1** | Tra cứu danh sách phiếu bảo hành chờ phân công theo trung tâm         | **US1**              | **UC1**            | **MUST**   | QT-14 | `TC-11` (A01 đường đọc — `GET /unassigned` 403 với KTV) |
 | **FR2** | Phân công kỹ thuật viên cho phiếu bảo hành theo tay nghề và trung tâm | **US2**              | **UC2**            | **MUST**   | QT-06, QT-07, QT-08, QT-11 | `TC-02`, `TC-06`, `TC-07`, `TC-10`, `TC-P4`, `TC-P5`, `TC-P6` |
 | **FR3** | Xem danh sách phiếu bảo hành được giao sắp xếp theo hạn cam kết SLA   | **US3**              | **UC3**            | **MUST**   | QT-04, QT-15 | `TC-01`, `TC-05`, `TC-11` |
-| **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | FR4 | `TC-04` (2 nhánh), `TC-09` |
+| **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | FR4 | `TC-04` (không trùng), `TC-09` (trùng) |
 | **FR5** | Giám sát và thống kê khối lượng công việc hiện tại của kỹ thuật viên  | **US5**              | **UC5**            | **SHOULD** | QT-11 | `TC-P5` (biên đạt), `TC-P6` (biên rớt) |
 | **FR6** | Cập nhật tiến độ và ghi nhận chuyển trạng thái phiếu bảo hành         | **US6**              | **UC6**            | **SHOULD** | QT-06, QT-14 | `TC-02`, `TC-08`, `TC-P3`, `TC-11` |
 | **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US2**              | **UC7**            | **COULD**  | QT-07 | `TC-P4` |
