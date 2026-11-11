@@ -1,0 +1,1119 @@
+openapi: 3.0.3
+
+info:
+  title: Mekong Mobile Smart CRM — Flow L4 API
+  description: |
+    REST API of the **Smart CRM – Mekong Mobile** system, flow **L4 — Technician assignment
+    and appointment scheduling** (Chuyên đề tốt nghiệp 1, HK261, track SE).
+
+    This specification is generated from the same source as
+    [`api-reference.md`](api-reference.md) and describes all **17 business endpoints**
+    plus the 2 infrastructure endpoints of the running system.
+
+    **Authentication** — every endpoint under `/api/**` requires a JSON Web Token obtained
+    from `POST /api/auth/login` and sent as `Authorization: Bearer <token>`.
+
+    **Business rules referenced by the endpoints**
+
+    | Rule | Meaning |
+    | :--- | :--- |
+    | QT-04 | SLA due date computed from the priority, working days only |
+    | QT-06 | Ticket status lifecycle, no going backwards |
+    | QT-07 | One technician per ticket; reassignment requires a note |
+    | QT-08 | Assignment requires `proficiency >= 3` and the same centre |
+    | QT-11 | A technician with 8 or more open tickets cannot receive another |
+    | QT-13 | Soft delete only — records are never physically deleted |
+    | QT-14 | Data scope by role: a technician only sees their own tickets |
+    | QT-15 | Customer phone numbers are masked for technicians |
+
+    **Sample accounts** — `manager_tt2` / `password123` (CENTER_MANAGER),
+    `ktv_nguyenvana` / `password123` (TECHNICIAN).
+  version: 0.2.0
+  contact:
+    name: Nguyen Tran Hoang Vinh
+    email: 2374802010562@student.hcmut.edu.vn
+  license:
+    name: Academic project — Chuyên đề tốt nghiệp 1 (HK261)
+    url: https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4
+
+servers:
+  - url: http://localhost:3000
+    description: Local Docker Compose deployment
+
+tags:
+  - name: Infrastructure
+    description: Liveness probe and service banner
+  - name: Authentication
+    description: Token issuing
+  - name: Tickets
+    description: Warranty ticket lifecycle — reception, assignment, status, appointment
+  - name: Technicians
+    description: Technician roster, eligibility and workload
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ===========================================================================
+  # INFRASTRUCTURE
+  # ===========================================================================
+  /health:
+    get:
+      tags: [Infrastructure]
+      summary: Backend liveness probe
+      description: |
+        Reports that the API process is running. Used by the Docker health check of the
+        `api` service. Does **not** open a database connection.
+      security: []
+      responses:
+        '200':
+          description: The API process is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: UP }
+                  uptime: { type: number, format: double, example: 129.016174971 }
+                  timestamp: { type: string, format: date-time }
+                  service: { type: string, example: 'Mekong Mobile CRM - Luồng L4 (Phân công KTV & Lịch hẹn)' }
+                  version: { type: string, example: 0.2.0 }
+              example:
+                status: UP
+                uptime: 129.016174971
+                timestamp: '2026-11-11T14:42:24.156Z'
+                service: 'Mekong Mobile CRM - Luồng L4 (Phân công KTV & Lịch hẹn)'
+                version: 0.2.0
+
+  /:
+    get:
+      tags: [Infrastructure]
+      summary: Service banner
+      description: Returns the API version, the API prefix and the URL of the web UI.
+      security: []
+      responses:
+        '200':
+          description: Service banner
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  version: { type: string, example: 0.2.0 }
+                  health: { type: string, example: /health }
+                  apiPrefix: { type: string, example: /api }
+                  frontendUrl: { type: string, example: 'http://localhost:5173' }
+
+  # ===========================================================================
+  # AUTHENTICATION
+  # ===========================================================================
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Exchange credentials for a JWT
+      description: |
+        Verifies the credentials against the bcrypt-hashed demo accounts and returns a signed
+        JSON Web Token together with the user profile. The only endpoint that does not
+        require a token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  description: Login name
+                  example: manager_tt2
+                password:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        '200':
+          description: Authentication succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Đăng nhập thành công' }
+                  data:
+                    type: object
+                    properties:
+                      token: { type: string }
+                      user: { $ref: '#/components/schemas/User' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # TICKETS
+  # ===========================================================================
+  /api/tickets:
+    get:
+      tags: [Tickets]
+      summary: List warranty tickets
+      description: |
+        Lists warranty tickets with pagination and filtering. For the `TECHNICIAN` role the
+        scope is silently narrowed to the tickets assigned to that technician (QT-14) and
+        the `technicianId` filter is ignored.
+      parameters:
+        - name: centerId
+          in: query
+          description: Filter by service centre
+          schema: { type: integer, example: 2 }
+        - name: technicianId
+          in: query
+          description: Filter by technician — **ignored** for the TECHNICIAN role (QT-14)
+          schema: { type: integer, example: 3 }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TicketStatus' }
+        - name: priority
+          in: query
+          schema: { $ref: '#/components/schemas/Priority' }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+      responses:
+        '200':
+          description: Ticket list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+                  total: { type: integer, example: 4 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Tickets]
+      summary: Register a new warranty ticket
+      description: |
+        Creates a ticket at a service centre. The ticket code is generated server-side in the
+        form `BH-{centerId}-{sequence}/{year}` and the SLA due date is computed from the
+        priority using working days only (QT-04).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TicketCreateRequest' }
+            example:
+              customerId: 3
+              deviceId: 3
+              centerId: 2
+              categoryId: 5
+              issueDesc: 'May bi vao nuoc, khong len man hinh sau khi lau'
+              priority: CAO
+      responses:
+        '201':
+          description: Ticket created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Tiếp nhận phiếu bảo hành mới thành công' }
+                  data: { $ref: '#/components/schemas/Ticket' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/tickets/unassigned:
+    get:
+      tags: [Tickets]
+      summary: List the tickets waiting for assignment
+      description: |
+        Returns the tickets of a centre with `status = 'MOI'` and no assigned technician,
+        sorted by reception time ascending (oldest first, SLA policy QT-04).
+        **Only the `CENTER_MANAGER` role may call this endpoint.**
+      parameters:
+        - name: centerId
+          in: query
+          description: Service centre — defaults to the caller's own centre
+          schema: { type: integer, example: 2 }
+      responses:
+        '200':
+          description: Unassigned ticket list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+                  total: { type: integer, example: 2 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/tickets/technician/mine:
+    get:
+      tags: [Tickets]
+      summary: List the tickets assigned to the signed-in technician
+      description: |
+        Returns the open tickets of the signed-in technician, sorted by the committed due date
+        so the most urgent work comes first (QT-04, QT-14). The `technicianId` query
+        parameter is ignored — the scope is always the caller.
+      parameters:
+        - name: technicianId
+          in: query
+          description: '**Ignored** — the scope is always the signed-in technician (QT-14)'
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Ticket list — customer phone numbers are masked (QT-15)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Ticket' }
+                  total: { type: integer, example: 1 }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/tickets/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    get:
+      tags: [Tickets]
+      summary: Get one warranty ticket
+      description: |
+        Returns the full detail of a ticket, including the customer, the device, the service
+        centre and the assigned technician.
+      responses:
+        '200':
+          description: Ticket detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/Ticket' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: PHIEU_KHONG_TON_TAI
+                message: 'Không tìm thấy phiếu bảo hành ID 99999'
+                chiTiet: null
+    put:
+      tags: [Tickets]
+      summary: Update a warranty ticket
+      description: |
+        Updates the editable content of a ticket (issue description, priority). A technician
+        may only update a ticket assigned to them (QT-14).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                issueDesc:
+                  type: string
+                  minLength: 10
+                  example: 'Man hinh bi soc xanh doc, cam ung goc phai bi liet va dong ho'
+                priority: { $ref: '#/components/schemas/Priority' }
+      responses:
+        '200':
+          description: Ticket updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Cập nhật phiếu bảo hành thành công' }
+                  data: { $ref: '#/components/schemas/Ticket' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      tags: [Tickets]
+      summary: Cancel a warranty ticket
+      description: |
+        Cancels a ticket. Only a ticket in status `MOI` may be cancelled; anything else must
+        go through the status lifecycle and end in `DA_HUY` (QT-13, QT-06).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  example: 'Khach huyen phieu trong 10 phut'
+      responses:
+        '200':
+          description: Ticket cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Đã xóa phiếu bảo hành ID 2 thành công' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: The ticket is not in status MOI
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: KHONG_THE_XOA_PHIEU
+                message: "Không thể xóa phiếu đang ở trạng thái 'DA_PHAN_CONG'. Chỉ được phép xóa phiếu ở trạng thái 'MOI'."
+                chiTiet: null
+
+  /api/tickets/{id}/assign:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [Tickets]
+      summary: Assign a technician to a ticket
+      description: |
+        The central business operation of flow L4. Validates that the technician belongs to
+        the same centre (QT-08), is skilled enough (`proficiency >= 3`, QT-08) and is not
+        overloaded (QT-11); then sets the status to `DA_PHAN_CONG` and appends the
+        transition to `status_history` (QT-06). A `note` is mandatory (QT-07).
+        Runs inside a transaction with a `SELECT … FOR UPDATE` row lock (NFR3).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [technicianId, note]
+              properties:
+                technicianId:
+                  type: integer
+                  example: 3
+                note:
+                  type: string
+                  description: Reason for the assignment or reassignment (QT-07)
+                  example: 'Phan cong KTV chuyen man hinh xu ly gap trong ca sang'
+      responses:
+        '200':
+          description: Assignment succeeded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Phân công kỹ thuật viên thành công' }
+                  data: { $ref: '#/components/schemas/Ticket' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The ticket or the technician does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: |
+            The assignment violates a business rule — `KTV_KHONG_CUNG_TRUNG_TAM` (QT-08),
+            `KTV_KHONG_DU_TAY_NGHE` (QT-08), `KTV_QUA_TAI` (QT-11) or
+            `TRANG_THAI_KHONG_HOP_LE`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                notSkilledEnough:
+                  summary: The technician's proficiency is below the threshold (HTTP 422)
+                  value:
+                    success: false
+                    error: KTV_KHONG_DU_TAY_NGHE
+                    message: 'Kỹ thuật viên không đủ điều kiện chuyên môn (yêu cầu điểm tay nghề proficiency tối thiểu từ 3 trở lên, hiện tại: 2).'
+                    chiTiet: null
+                wrongCentre:
+                  summary: The technician belongs to another centre (HTTP 422)
+                  value:
+                    success: false
+                    error: KTV_KHONG_CUNG_TRUNG_TAM
+                    message: 'Không thể phân công kỹ thuật viên (Trung tâm 4) không thuộc trung tâm tiếp nhận phiếu (Trung tâm 2).'
+                    chiTiet: null
+
+  /api/tickets/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    patch:
+      tags: [Tickets]
+      summary: Move a ticket to the next status
+      description: |
+        Moves a ticket along the lifecycle (QT-06) and records the transition, with the
+        acting user and the note, in `status_history`. The only exception to the strict
+        forward order is `CHO_LINH_KIEN → DANG_XU_LY`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/TicketStatus' }
+                note:
+                  type: string
+                  example: 'Bat dau thao may kiem tra bo mach va cap man hinh'
+      responses:
+        '200':
+          description: Status changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message:
+                    type: string
+                    example: "Chuyển trạng thái phiếu sang 'DANG_XU_LY' thành công"
+                  data: { $ref: '#/components/schemas/Ticket' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: The transition breaks the lifecycle (QT-06)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: TRANG_THAI_KHONG_HOP_LE
+                message: "Không thể chuyển trạng thái từ 'DA_PHAN_CONG' sang 'MOI' theo quy tắc vòng đời không đảo ngược (QT-06)."
+                chiTiet: null
+
+  /api/tickets/{id}/appointment:
+    parameters:
+      - $ref: '#/components/parameters/TicketId'
+    post:
+      tags: [Tickets]
+      summary: Book or reschedule the hand-over appointment
+      description: |
+        Books or reschedules the appointment for a ticket. The request is rejected if the
+        assigned technician already has another appointment within a **±30 minute** window.
+        A technician may only book for a ticket assigned to them (QT-14).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointmentAt]
+              properties:
+                appointmentAt:
+                  type: string
+                  format: date-time
+                  example: '2026-11-20T10:00:00+07:00'
+                appointmentStatus:
+                  type: string
+                  enum: [SCHEDULED, CONFIRMED, CANCELLED, COMPLETED]
+                  default: SCHEDULED
+      responses:
+        '200':
+          description: Appointment booked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Đặt lịch hẹn giao nhận máy thành công' }
+                  data: { $ref: '#/components/schemas/Ticket' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409':
+          description: The technician already has an appointment in the window
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: LICH_HEN_XUNG_DOT
+                message: 'Kỹ thuật viên đã có lịch hẹn khác (phiếu BH-2-00001/2026) trong khung giờ này. Vui lòng chọn thời gian khác.'
+                chiTiet: null
+        '422':
+          description: The ticket has no assigned technician yet
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  # ===========================================================================
+  # TECHNICIANS
+  # ===========================================================================
+  /api/technicians:
+    get:
+      tags: [Technicians]
+      summary: List the technicians of a service centre
+      description: |
+        Returns the roster of a centre, sorted by proficiency descending and then by name.
+      parameters:
+        - name: centerId
+          in: query
+          description: Service centre — defaults to the caller's own centre
+          schema: { type: integer, example: 2 }
+        - name: isActive
+          in: query
+          schema: { type: boolean, default: true }
+      responses:
+        '200':
+          description: Technician list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Technician' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Technicians]
+      summary: Register a new technician
+      description: Creates a technician in a service centre.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TechnicianCreateRequest' }
+            example:
+              employeeId: NV-KTV-009
+              fullName: 'Pham Thi Ngoc'
+              centerId: 2
+              level: TRUNG_CAP
+              proficiency: 4
+      responses:
+        '201':
+          description: Technician created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Thêm mới kỹ thuật viên thành công' }
+                  data: { $ref: '#/components/schemas/Technician' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The service centre does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/technicians/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TechnicianId'
+    get:
+      tags: [Technicians]
+      summary: Get one technician
+      responses:
+        '200':
+          description: Technician profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data: { $ref: '#/components/schemas/Technician' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The technician does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                success: false
+                error: KTV_KHONG_TON_TAI
+                message: 'Không tìm thấy kỹ thuật viên ID 99999'
+                chiTiet: null
+    put:
+      tags: [Technicians]
+      summary: Update a technician
+      description: |
+        Updates the profile of a technician. Lowering `proficiency` below 3 does not revoke
+        the technician's existing assignments — QT-08 is enforced only at assignment time.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fullName: { type: string, example: 'Pham Thi Ngoc' }
+                level: { $ref: '#/components/schemas/TechnicianLevel' }
+                proficiency: { type: integer, minimum: 1, maximum: 5, example: 5 }
+                centerId: { type: integer, example: 2 }
+                isActive: { type: boolean }
+      responses:
+        '200':
+          description: Technician updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message: { type: string, example: 'Cập nhật kỹ thuật viên thành công' }
+                  data: { $ref: '#/components/schemas/Technician' }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The technician does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    delete:
+      tags: [Technicians]
+      summary: Deactivate a technician (soft delete)
+      description: |
+        Sets `isActive = false`. The record is **never** physically deleted, so the history of
+        past assignments stays intact (QT-13).
+      responses:
+        '200':
+          description: Technician deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  message:
+                    type: string
+                    example: 'Vô hiệu hóa kỹ thuật viên thành công (Soft Delete QT-13)'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The technician does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /api/technicians/candidates-for-ticket/{ticketId}:
+    parameters:
+      - name: ticketId
+        in: path
+        required: true
+        description: '`ticketId` of the ticket to be assigned'
+        schema: { type: integer, example: 1 }
+    get:
+      tags: [Technicians]
+      summary: Suggest eligible technicians for a ticket
+      description: |
+        The recommendation engine behind the assignment screen. Filters by centre and
+        proficiency (QT-08) and sorts by ascending workload so the manager is steered
+        towards the least loaded technician (load balancing, QT-11). A technician with
+        `workload >= 8` is still listed but is rejected at assignment time with
+        `KTV_QUA_TAI`.
+      responses:
+        '200':
+          description: The ticket and its candidate technicians
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  data:
+                    type: object
+                    properties:
+                      ticket: { $ref: '#/components/schemas/TicketSummary' }
+                      candidates:
+                        type: array
+                        items: { $ref: '#/components/schemas/CandidateTechnician' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: The ticket does not exist
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+# ===========================================================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JSON Web Token obtained from `POST /api/auth/login`, sent as
+        `Authorization: Bearer <token>`.
+
+  parameters:
+    TicketId:
+      name: id
+      in: path
+      required: true
+      description: '`ticketId` of the warranty ticket'
+      schema: { type: integer, example: 1 }
+    TechnicianId:
+      name: id
+      in: path
+      required: true
+      description: '`technicianId` of the technician'
+      schema: { type: integer, example: 3 }
+
+  schemas:
+    Error:
+      type: object
+      required: [success, error, message]
+      properties:
+        success: { type: boolean, example: false }
+        error:
+          type: string
+          description: Stable machine-readable business error code
+          example: DU_LIEU_KHONG_HOP_LE
+        message:
+          type: string
+          description: Human-readable description
+          example: 'Dữ liệu đầu vào tiếp nhận phiếu không hợp lệ'
+        chiTiet:
+          type: array
+          nullable: true
+          description: Field-level details when the failure is a validation failure
+          items:
+            type: object
+            properties:
+              field: { type: string, example: customerId }
+              reason: { type: string, example: 'Mã khách hàng phải là số nguyên dương' }
+
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        fullName: { type: string, example: 'Trần Văn Quản Lý (TT2)' }
+        role:
+          type: string
+          enum: [CENTER_MANAGER, TECHNICIAN]
+          example: CENTER_MANAGER
+        centerId: { type: integer, example: 2 }
+
+    Priority:
+      type: string
+      enum: [CAO, TRUNG_BINH, THAP]
+      description: |
+        Ticket priority. It determines the SLA due date (QT-04): `CAO` 24 h, `TRUNG_BINH`
+        72 h, `THAP` 120 h, counting working days only.
+      example: CAO
+
+    TicketStatus:
+      type: string
+      enum: [MOI, DA_PHAN_CONG, DANG_XU_LY, CHO_LINH_KIEN, HOAN_TAT, DA_DONG, DA_HUY]
+      description: |
+        The seven lifecycle statuses of a warranty ticket (QT-06). The only permitted
+        backwards exception is `CHO_LINH_KIEN → DANG_XU_LY`.
+      example: MOI
+
+    TechnicianLevel:
+      type: string
+      enum: [SO_CAP, TRUNG_CAP, CAO_CAP]
+      example: TRUNG_CAP
+
+    StatusHistoryEntry:
+      type: object
+      description: One entry of the JSONB `ticket.status_history` array
+      properties:
+        from:
+          type: string
+          nullable: true
+          example: MOI
+        to: { type: string, example: DA_PHAN_CONG }
+        at: { type: string, format: date-time }
+        by:
+          type: integer
+          nullable: true
+          description: '`id` of the user who caused the transition'
+          example: 1
+        note: { type: string, example: 'Phân công kỹ thuật viên Nguyễn Văn A' }
+
+    Customer:
+      type: object
+      properties:
+        customerId: { type: integer, example: 1 }
+        fullName: { type: string, example: 'Nguyễn Thị Mai' }
+        phone:
+          type: string
+          description: Masked as `090****567` for the TECHNICIAN role (QT-15)
+          example: '0901234567'
+        email: { type: string, format: email, example: 'mai.nguyen@gmail.com' }
+        address: { type: string, example: 'Quận 10, TP.HCM' }
+        segment:
+          type: string
+          enum: [MOI, VIP, THUONG_XUYEN]
+          example: VIP
+        createdAt: { type: string, format: date-time }
+
+    Device:
+      type: object
+      properties:
+        deviceId: { type: integer, example: 1 }
+        customerId: { type: integer, example: 1 }
+        serialNo: { type: string, example: 'MK-IP15P-9921' }
+        productName: { type: string, example: 'iPhone 15 Pro Max 256GB' }
+        purchaseDate: { type: string, format: date, nullable: true }
+        warrantyMonths: { type: integer, example: 12 }
+        createdAt: { type: string, format: date-time }
+
+    IssueCategory:
+      type: object
+      properties:
+        categoryId: { type: integer, example: 1 }
+        categoryName: { type: string, example: MAN_HINH }
+        defaultPriority: { $ref: '#/components/schemas/Priority' }
+        isActive: { type: boolean, example: true }
+
+    ServiceCenter:
+      type: object
+      properties:
+        centerId: { type: integer, example: 2 }
+        centerName: { type: string, example: 'TTBH Mekong Tân Bình' }
+        address: { type: string, example: '456 Cộng Hòa, P.13, Q.Tân Bình' }
+        phone:
+          type: string
+          description: Masked as `028****233` on technician-facing routes (QT-15)
+          example: '02838442233'
+        city: { type: string, example: 'TP.HCM' }
+        isActive: { type: boolean, example: true }
+
+    Technician:
+      type: object
+      properties:
+        technicianId: { type: integer, example: 3 }
+        employeeId: { type: string, example: 'NV-KTV-003' }
+        fullName: { type: string, example: 'Nguyễn Văn A' }
+        centerId: { type: integer, example: 2 }
+        level: { $ref: '#/components/schemas/TechnicianLevel' }
+        proficiency:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: |
+            Skill level — 1 trainee, 2 junior, 3 intermediate, 4 proficient, 5 expert.
+            At least 3 is required to be assignable (QT-08).
+          example: 5
+        isActive: { type: boolean, example: true }
+        createdAt: { type: string, format: date-time }
+        serviceCenter: { $ref: '#/components/schemas/ServiceCenter' }
+
+    CandidateTechnician:
+      allOf:
+        - $ref: '#/components/schemas/Technician'
+        - type: object
+          properties:
+            workload:
+              type: integer
+              description: |
+                Number of open tickets held by this technician (status `DA_PHAN_CONG`,
+                `DANG_XU_LY`, `CHO_LINH_KIEN`). The assignment is rejected at 8 or more
+                (QT-11).
+              example: 0
+
+    TicketSummary:
+      type: object
+      description: The reduced ticket representation returned with the candidate list
+      properties:
+        ticketId: { type: integer, example: 1 }
+        ticketCode: { type: string, example: 'BH-2-00001/2026' }
+        centerId: { type: integer, example: 2 }
+        issueDesc: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+
+    Ticket:
+      type: object
+      properties:
+        ticketId: { type: integer, example: 1 }
+        ticketCode:
+          type: string
+          description: Generated by the server in the form `BH-{centerId}-{sequence}/{year}`
+          example: 'BH-2-00001/2026'
+        customerId: { type: integer, example: 1 }
+        deviceId: { type: integer, example: 1 }
+        centerId: { type: integer, example: 2 }
+        technicianId:
+          type: integer
+          nullable: true
+          example: 3
+        categoryId: { type: integer, nullable: true, example: 1 }
+        issueDesc: { type: string }
+        priority: { $ref: '#/components/schemas/Priority' }
+        status: { $ref: '#/components/schemas/TicketStatus' }
+        receivedAt: { type: string, format: date-time }
+        dueDate:
+          type: string
+          format: date-time
+          description: SLA deadline computed by the server (QT-04)
+        closedAt: { type: string, format: date-time, nullable: true }
+        statusHistory:
+          type: array
+          items: { $ref: '#/components/schemas/StatusHistoryEntry' }
+        appointmentAt: { type: string, format: date-time, nullable: true }
+        appointmentStatus:
+          type: string
+          nullable: true
+          enum: [SCHEDULED, CONFIRMED, CANCELLED, COMPLETED, null]
+        customer: { $ref: '#/components/schemas/Customer' }
+        device: { $ref: '#/components/schemas/Device' }
+        category: { $ref: '#/components/schemas/IssueCategory' }
+        serviceCenter: { $ref: '#/components/schemas/ServiceCenter' }
+        technician:
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/Technician'
+
+    TicketCreateRequest:
+      type: object
+      required: [customerId, deviceId, centerId, issueDesc, priority]
+      properties:
+        customerId: { type: integer, minimum: 1, example: 3 }
+        deviceId: { type: integer, minimum: 1, example: 3 }
+        centerId: { type: integer, minimum: 1, example: 2 }
+        categoryId: { type: integer, example: 5 }
+        issueDesc:
+          type: string
+          minLength: 10
+          example: 'May bi vao nuoc, khong len man hinh sau khi lau'
+        priority: { $ref: '#/components/schemas/Priority' }
+        note: { type: string }
+
+    TechnicianCreateRequest:
+      type: object
+      required: [employeeId, fullName, centerId, level, proficiency]
+      properties:
+        employeeId:
+          type: string
+          description: Unique employee code
+          example: 'NV-KTV-009'
+        fullName: { type: string, example: 'Pham Thi Ngoc' }
+        centerId: { type: integer, minimum: 1, example: 2 }
+        level: { $ref: '#/components/schemas/TechnicianLevel' }
+        proficiency: { type: integer, minimum: 1, maximum: 5, example: 4 }
+        isActive: { type: boolean, default: true }
+
+  responses:
+    BadRequest:
+      description: The request payload failed validation
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: DU_LIEU_KHONG_HOP_LE
+            message: 'Dữ liệu đầu vào tiếp nhận phiếu không hợp lệ'
+            chiTiet:
+              - field: customerId
+                reason: 'Mã khách hàng phải là số nguyên dương'
+              - field: deviceId
+                reason: 'Mã thiết bị phải là số nguyên dương'
+              - field: centerId
+                reason: 'Mã trung tâm phải là số nguyên dương'
+              - field: issueDesc
+                reason: 'Mô tả sự cố phải từ 10 ký tự trở lên'
+              - field: priority
+                reason: 'Mức ưu tiên phải là CAO, TRUNG_BINH hoặc THAP'
+    Unauthorized:
+      description: Authentication failed — missing, invalid or expired token
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: XAC_THUC_KHONG_HOP_LE
+            message: 'Yêu cầu đăng nhập trước khi thực hiện'
+            chiTiet: null
+    Forbidden:
+      description: The role or the ownership scope forbids the operation (A01, QT-14)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: KHONG_CO_QUYEN
+            message: 'Bạn không có quyền xem phiếu bảo hành của kỹ thuật viên khác'
+            chiTiet: null
+    InternalError:
+      description: Unexpected server-side error — the response never contains internals
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            success: false
+            error: LOI_HE_THONG
+            message: 'Đã xảy ra lỗi nội bộ trên máy chủ. Vui lòng thử lại sau.'
