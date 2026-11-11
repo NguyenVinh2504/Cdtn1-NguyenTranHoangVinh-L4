@@ -4,7 +4,7 @@
 > **Track:** Kỹ thuật phần mềm (SE) · **Sinh viên:** Nguyễn Trần Hoàng Vinh — MSSV 2374802010562
 > **Kèm theo:** `docs/test-plan.md` (Thành phần 1) · `docs/bug-log.md` (Thành phần 3)
 > **Lệnh chạy:** `npm test` → `jest --runInBand --detectOpenHandles --forceExit`
-> **Bộ mã duy nhất:** `TC-01`…`TC-12` — dùng chung cho cả Plan (mục 2.3) và Report (bảng A + B + C).
+> **Bộ mã duy nhất:** `TC-01`…`TC-12` — dùng chung cho cả Plan (mục 2.3) và Report (bảng A + B + C). Bộ hồi quy lỗi máy trắng bổ sung `TC-13`…`TC-15` được ghi ở Phụ lục E.
 
 **Cột 7 (Kết quả thực tế) và cột 8 (PASS/FAIL):** `TC-01`…`TC-10` (unit, `tests/bt3-unit.test.js`) và `TC-11` (`tests/bt3-new.test.js`, test SEC-01 + SEC-03) **đã chạy thật** và ghi kết quả bên dưới. `TC-12` (chạy seed lần 2 trên CSDL thật) chạy thủ công, có ảnh chụp terminal. Mọi mục cột 7–8 đều khớp kết quả thực tế của lần chạy.
 
@@ -12,6 +12,7 @@
 - `TC-01`…`TC-10` → `tests/bt3-unit.test.js` (mock repository, **không cần CSDL**; `TC-01` có 2 nhánh — Thứ 2 / Chủ Nhật; `TC-04` là nhánh *không trùng*, nhánh *trùng* là mã riêng `TC-09`)
 - `TC-11` → `tests/bt3-new.test.js` test SEC-01 (đường **ghi**) + test SEC-03 (đường **đọc**) (Supertest + `createApp()` thật + repository giả in-memory, **không cần CSDL**)
 - `TC-12` → `prisma/seed.js` chạy lần 2 thủ công trên PostgreSQL thật
+- `TC-13`…`TC-15` → `tests/bt3-bugfix.test.js` (hồi quy 3 lỗi phát hiện bằng phép thử máy trắng — xem **Phụ lục E**)
 - Phụ lục hồi quy (không tính vào 12 TC chính): `TC-P1` = SEC-02 (không token → 401, truy vết BUG-05) · `TC-P2` = U10 (ticketId không tồn tại → `PHIEU_KHONG_TON_TAI`) · `TC-P3` = BUG-08 (chuyển trạng thái tự thân → `TRANG_THAI_KHONG_HOP_LE`)
 
 > **Cách chạy lại đúng 1 test case:** tên hàm `test()` **luôn bắt đầu bằng mã test case** trong bảng này, nên dùng `npx jest <file> -t "<mã>"`. Chi tiết bảng tra cứu nhanh nằm ở `docs/test-plan.md` Mục 4.3.1.
@@ -256,12 +257,12 @@ _(Số hàm `test()` thực thi: **16** hàm trong `tests/bt3-unit.test.js` — 
 
 **Trạng thái cuối (sau fix BUG-04/BUG-05/BUG-06/BUG-07/BUG-08/BUG-09 + chạy TC-12): 12/12 PASS.** Phụ lục: `TC-P1` (SEC-02) PASS → `BUG-05`; `TC-P2` (U10) PASS; `TC-P3` (BUG-08) PASS; `TC-P4` (QT-07) PASS; `TC-P5` (QT-11 biên đạt) PASS; `TC-P6` (QT-11 biên rớt) PASS.
 
-**Log chạy thật (`npm test`):**
+**Log chạy thật (`npm test`, sau khi bổ sung bộ hồi quy lỗi máy trắng — release `v1.0`):**
 ```
-Test Suites: 6 passed, 6 total
-Tests:       48 passed, 48 total
+Test Suites: 7 passed, 7 total
+Tests:       52 passed, 52 total
 Snapshots:   0 total
-Time:        ~3 s
+Time:        ~2.5 s
 ```
 
 **Lệnh chạy từng nhóm:**
@@ -292,4 +293,16 @@ _(Bảng tra cứu đầy đủ 12 mã: `docs/test-plan.md` Mục 4.3.1.)_
 
 > **Ghi chú về `TC-P3`:** trước BUG-08, `VALID_TRANSITIONS['DA_PHAN_CONG']` chứa `'DA_PHAN_CONG'`, nên lệnh `PATCH .../status` với `status = DA_PHAN_CONG` được chấp nhận và ghi thêm 1 phần tử `status_history` rác (`from = to = DA_PHAN_CONG`). Sau commit `b0f2f9b` chuyển trạng thái tự thân bị từ chối đúng QT-06. Chi tiết: `docs/bug-log.md` → BUG-08.
 
-**Tổng số hàm `test()` của toàn bộ suite `npm test`: 48 PASS** (29 hàm hồi quy BT2 + 16 hàm `tests/bt3-unit.test.js` + 3 hàm `tests/bt3-new.test.js`).
+## E. Phụ lục hồi quy lỗi phát hiện bằng phép thử máy trắng (3 mã TC, 4 hàm test)
+
+> Ba lỗi dưới đây **không thể phát hiện** bằng bộ unit test dùng repository giả in-memory —
+> chúng chỉ xuất hiện khi chạy trên PostgreSQL 16 thật với dữ liệu mẫu đã nạp. Chi tiết nguyên
+> nhân và cách sửa: `docs/bug-log.md` (BUG-10, BUG-11, BUG-12).
+
+| Mã TC | BUG | Loại | Nội dung kiểm thử | Kết quả |
+|:---|:---|:---|:---|:---|
+| `TC-13` | BUG-10 | API (Supertest) | Sau khi seed, `POST /api/tickets` phải trả **HTTP 201**, không được 500 do sequence PostgreSQL chưa tiến (trùng khoá chính `ticket_id`) | **PASS** |
+| `TC-14` | BUG-11 | API (Supertest) | Xoá 1 phiếu rồi `POST /api/tickets` phải trả **HTTP 201** với `ticket_code` **không trùng** phiếu còn lại (trước fix dùng `COUNT(*)` nên sinh lại mã cũ → P2002 → 500) | **PASS** |
+| `TC-15` | BUG-12 | API (Supertest) | KTV khác chủ sở hữu gọi `POST /api/tickets/{id}/appointment` → **HTTP 403** `KHONG_CO_QUYEN` và dữ liệu **không đổi**; chính chủ sở hữu gọi cùng endpoint → **HTTP 200** | **PASS** (2 hàm test) |
+
+**Tổng số hàm `test()` của toàn bộ suite `npm test`: 52 PASS** (29 hàm hồi quy BT2 + 16 hàm `tests/bt3-unit.test.js` + 3 hàm `tests/bt3-new.test.js` + 4 hàm `tests/bt3-bugfix.test.js`).

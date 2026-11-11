@@ -239,7 +239,8 @@ module.exports = function ticketRoutes(ticketService) {
       const updatedTicket = await ticketService.scheduleAppointment(
         req.params.id,
         input.appointmentAt,
-        input.appointmentStatus
+        input.appointmentStatus,
+        req.user || null
       );
 
       res.status(200).json({

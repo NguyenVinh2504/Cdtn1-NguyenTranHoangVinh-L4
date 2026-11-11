@@ -199,11 +199,24 @@ class TicketService {
   /**
    * UC4: Đặt hoặc điều chỉnh lịch hẹn giao nhận máy (FR4)
    * Tự động kiểm tra xung đột khung giờ của KTV
+   *
+   * BUG-12 fix (MAJOR - A01/QT-14): trước đây hàm này KHÔNG nhận tham số `caller`
+   * nên một Kỹ thuật viên có thể đặt lịch hẹn cho phiếu của KTV khác (chỉ cần biết
+   * ticketId) — phá vỡ phạm vi dữ liệu theo chủ sở hữu mà các endpoint khác đã chặn.
    */
-  async scheduleAppointment(ticketId, appointmentAt, appointmentStatus = 'SCHEDULED') {
+  async scheduleAppointment(ticketId, appointmentAt, appointmentStatus = 'SCHEDULED', caller = null) {
     const ticket = await this.tickets.findById(ticketId);
     if (!ticket) {
       throw new AppError('PHIEU_KHONG_TON_TAI', `Không tìm thấy phiếu bảo hành ID ${ticketId}`);
+    }
+
+    // BUG-12 fix: KTV chỉ được đặt lịch hẹn cho phiếu được gán cho chính mình (QT-14)
+    if (caller && caller.role === 'TECHNICIAN' &&
+        Number(ticket.technicianId) !== Number(caller.id)) {
+      throw new AppError(
+        'KHONG_CO_QUYEN',
+        'Bạn không có quyền đặt lịch hẹn cho phiếu bảo hành của kỹ thuật viên khác'
+      );
     }
 
     if (!ticket.technicianId) {

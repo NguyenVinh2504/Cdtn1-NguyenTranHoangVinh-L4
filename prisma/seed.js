@@ -7,6 +7,7 @@ BigInt.prototype.toJSON = function () {
 };
 
 const prisma = new PrismaClient();
+const { syncSequences } = require('./sync-sequences');
 
 async function main() {
   console.log('🌱 Bắt đầu nạp dữ liệu mẫu Mekong Mobile CRM (Idempotent Seed)...');
@@ -198,6 +199,11 @@ async function main() {
     });
   }
   console.log('✅ Đã nạp các Phiếu bảo hành mẫu với đầy đủ JSONB status_history.');
+
+  // BUG-10 fix: đồng bộ sequence để create() sau khi seed không sinh trùng khoá chính
+  await syncSequences(prisma);
+  console.log('✅ Đã đồng bộ sequence PostgreSQL về giá trị lớn nhất của mỗi bảng.');
+
   console.log('🎉 Hoàn tất Seed dữ liệu mẫu thành công!');
 }
 

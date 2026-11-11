@@ -186,11 +186,18 @@ class TicketRepository {
   }
 
   async generateTicketCode(centerId) {
-    const count = await this.client.ticket.count({
-      where: { centerId: BigInt(centerId) }
+    // BUG-11 fix (MAJOR): KHÔNG dùng COUNT(*) để sinh mã.
+    // COUNT bị lệch khi một phiếu đã bị xoá (đã xoá 1 phiếu -> COUNT=3 -> sinh lại
+    // BH-2-00004/2026 trùng với phiếu đang tồn tại -> Prisma P2002 -> HTTP 500).
+    // Dùng MAX(ticket_id) của trung tâm để mã luôn tăng đơn điệu và không trùng.
+    const latest = await this.client.ticket.findFirst({
+      where: { centerId: BigInt(centerId) },
+      orderBy: { ticketId: 'desc' },
+      select: { ticketId: true }
     });
+
     const year = new Date().getFullYear();
-    const seq = String(count + 1).padStart(5, '0');
+    const seq = String((latest ? Number(latest.ticketId) : 0) + 1).padStart(5, '0');
     return `BH-${centerId}-${seq}/${year}`;
   }
 }

@@ -60,7 +60,8 @@ Ngoài 5 quy tắc trọng tâm ở bảng trên, bộ kiểm thử còn bao ph�
 | **Unit test** | Kiểm 1 hàm / 1 lớp service, thay thế Repository bằng đối tượng giả (Mock) | **10 mã TC** / **16 hàm test()** | Jest 29 + `jest.fn()` | Không | `tests/bt3-unit.test.js` (TC-01…TC-10 — `TC-01` tách thành 2 hàm (nhánh A: Thứ 2 / nhánh B: Chủ Nhật); `TC-04` có 1 hàm (nhánh 1: không trùng), nhánh 2 là `TC-09` với mã riêng → 10 mã thành **11 hàm**; cộng 5 mã TC phụ TC-P2…TC-P6 → **16 hàm**) |
 | **API test** | Gọi hệ thống qua HTTP như người dùng thật (Express + Supertest; service + middleware thật, repository giả in-memory) | **1 mã TC** / **1 hàm test()** | Jest 29 + Supertest 7 | Không (inject repository giả qua `createApp()`) | `tests/bt3-new.test.js` (TC-11 — gồm cả đường ghi A01 và đường đọc A01 trong cùng 1 hàm test()) |
 | **Tái lập thủ công** | Chạy lại `node prisma/seed.js` lần 2 trên PostgreSQL thật, đếm 6 bảng trước/sau | **1 mã TC** | `node` + Prisma / `psql` | **Có** | `prisma/seed.js` (TC-12, thủ công + ảnh chụp) |
-| | | **12 mã test case** | | | |
+| **Hồi quy lỗi máy trắng** | Gọi HTTP qua Express + Supertest cho 3 lỗi phát hiện bằng phép thử máy trắng (sequence, mã phiếu trùng, phân quyền đặt lịch) | **3 mã TC** / **4 hàm test()** | Jest 29 + Supertest 7 | Không | `tests/bt3-bugfix.test.js` (TC-13, TC-14, TC-15) |
+| | | **12 mã TC cốt lõi + 3 mã TC hồi quy** | | | |
 
 > **Cách đếm (thống nhất cho cả Test Plan và Test Report):**
 >
@@ -69,8 +70,9 @@ Ngoài 5 quy tắc trọng tâm ở bảng trên, bộ kiểm thử còn bao ph�
 > | **Mã test case cốt lõi (TC-01…TC-12)** | **12** | Đây là con số báo cáo trong `docs/test-report.md` và nằm trong mục tiêu "10–12 test case" của đề BT3 mục 2.2. |
 > | **Hàm `test()` trong `tests/bt3-unit.test.js`** | **16** | 10 mã TC cốt lõi → **11 hàm** (`TC-01` tách thành 2 hàm: nhánh A: Thứ 2 / nhánh B: Chủ Nhật; 9 mã còn lại 1 hàm mỗi mã — nhánh *trùng lịch* của `TC-04` được tách thành mã riêng `TC-09` để giữ 12 mã TC đúng yêu cầu đề) + 5 mã TC phụ `TC-P2`, `TC-P3`, `TC-P4`, `TC-P5`, `TC-P6` → **16 hàm**. |
 > | **Hàm `test()` trong `tests/bt3-new.test.js`** | **3** | `TC-11` (TC-SEC-01: đường ghi A01 → 403) · `TC-11` (TC-SEC-03: đường đọc A01 → 403 × 3 endpoint) · `TC-P1` (TC-SEC-02: không token → 401). |
-> | **Tổng số hàm `test()` của bộ BT3** | **19** | 16 (unit) + 3 (API) |
-> | **Tổng số hàm `test()` của toàn bộ suite `npm test`** | **48** | 29 hàm hồi quy Bài tập 2 (`ticket.service` 12 + `technician.service` 4 + `api.routes` 8 + `validator` 5) + 19 hàm BT3. Lệnh `npm test` báo cáo `Tests: 48 passed, 48 total`. |
+> | **Hàm `test()` trong `tests/bt3-bugfix.test.js`** | **4** | 3 mã TC hồi quy cho lỗi phát hiện bằng phép thử máy trắng: `TC-13` (BUG-10 — sequence) · `TC-14` (BUG-11 — mã phiếu trùng) · `TC-15` (BUG-12 — phân quyền đặt lịch, 2 hàm: KTV khác → 403 và chính chủ → 200). |
+> | **Tổng số hàm `test()` của bộ BT3** | **23** | 16 (unit) + 3 (API) + 4 (hồi quy lỗi máy trắng) |
+> | **Tổng số hàm `test()` của toàn bộ suite `npm test`** | **52** | 29 hàm hồi quy Bài tập 2 (`ticket.service` 12 + `technician.service` 4 + `api.routes` 8 + `validator` 5) + 23 hàm BT3. Lệnh `npm test` báo cáo `Tests: 52 passed, 52 total` (7 test suite). |
 
 > **Bộ kiểm thử hồi quy (regression) của Bài tập 2** gồm **29 test functions** vẫn chạy cùng lệnh `npm test` — bảo đảm các sửa lỗi của BT3 không làm hồi quy BT2. Test Report của BT3 chỉ lập bảng cho **12 mã test case cốt lõi** nêu dưới đây.
 
@@ -251,13 +253,13 @@ Snapshots:   0 total
 Time:        < 60 s
 ```
 
-**Sau khi fix thêm BUG-07 / BUG-08 / BUG-09 và bổ sung 3 mã TC phụ TC-P4/TC-P5/TC-P6 (giai đoạn đối chiếu tài liệu BT3 — trạng thái hiện tại):**
+**Sau khi fix BUG-07 / BUG-08 / BUG-09 / BUG-10 / BUG-11 / BUG-12, bổ sung TC-P4/TC-P5/TC-P6 và bộ hồi quy `tests/bt3-bugfix.test.js` (trạng thái hiện tại — release `v1.0`):**
 
 ```
-Test Suites: 6 passed, 6 total
-Tests:       48 passed, 48 total
+Test Suites: 7 passed, 7 total
+Tests:       52 passed, 52 total
 Snapshots:   0 total
-Time:        ~3 s
+Time:        ~2.5 s
 ```
 
 ### 4.3.1. Chạy lại **một** test case tại chỗ (theo mã trong Test Report)
@@ -277,6 +279,11 @@ npx jest tests/bt3-unit.test.js -t "TC-P3"    # BUG-08 — self-loop → 403
 npx jest tests/bt3-unit.test.js -t "TC-P4"    # QT-07 — note khi điều chuyển KTV
 npx jest tests/bt3-unit.test.js -t "TC-P5"    # QT-11 — biên đạt 8 phiếu → KTV_QUA_TAI
 npx jest tests/bt3-unit.test.js -t "TC-P6"    # QT-11 — biên rớt 7 phiếu → phân công OK
+
+# Chạy lại bộ hồi quy lỗi phát hiện bằng phép thử máy trắng
+npx jest tests/bt3-bugfix.test.js -t "TC-13"  # BUG-10 — sequence PostgreSQL sau seed
+npx jest tests/bt3-bugfix.test.js -t "TC-14"  # BUG-11 — mã phiếu không trùng sau khi xoá
+npx jest tests/bt3-bugfix.test.js -t "TC-15"  # BUG-12 — KTV khác đặt lịch → 403
 ```
 
 **Bảng tra cứu nhanh — mã Test Report → lệnh chạy:**
@@ -301,6 +308,9 @@ npx jest tests/bt3-unit.test.js -t "TC-P6"    # QT-11 — biên rớt 7 phiếu 
 | `TC-P4` | `npx jest tests/bt3-unit.test.js -t "TC-P4"` | 1 test PASS |
 | `TC-P5` | `npx jest tests/bt3-unit.test.js -t "TC-P5"` | 1 test PASS |
 | `TC-P6` | `npx jest tests/bt3-unit.test.js -t "TC-P6"` | 1 test PASS |
+| `TC-13` | `npx jest tests/bt3-bugfix.test.js -t "TC-13"` | 1 test PASS (BUG-10) |
+| `TC-14` | `npx jest tests/bt3-bugfix.test.js -t "TC-14"` | 1 test PASS (BUG-11) |
+| `TC-15` | `npx jest tests/bt3-bugfix.test.js -t "TC-15"` | 2 test PASS (KTV khác → 403 · chính chủ → 200; BUG-12) |
 
 > **Lưu ý:** `TC-01` là **2 nhánh trong cùng 1 mã test case** (mã trong Test Report), nên lệnh `-t "TC-01"` sẽ chạy **2 hàm `test()`** — đúng như thiết kế, không phải lỗi. `TC-11` cũng gồm 2 hàm (đường ghi A01 + đường đọc A01) trong cùng 1 mã.
 
