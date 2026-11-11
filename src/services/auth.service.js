@@ -1,12 +1,14 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { JWT_SECRET } = require('../config/jwt.config');
 const { AppError } = require('../errors/AppError');
 
-// Danh sách tài khoản demo mẫu phục vụ chạy thử nghiệm
+// BUG-06 fix: KHÔNG lưu mật khẩu plaintext — chỉ lưu bcrypt hash.
+// Mật khẩu demo gốc vẫn là 'password123' nhưng được băm khi nạp module.
 const DEMO_USERS = [
   {
     username: 'manager_tt2',
-    password: 'password123',
+    passwordHash: bcrypt.hashSync('password123', 10),
     id: 1,
     fullName: 'Trần Văn Quản Lý (TT2)',
     role: 'CENTER_MANAGER',
@@ -14,7 +16,7 @@ const DEMO_USERS = [
   },
   {
     username: 'ktv_nguyenvana',
-    password: 'password123',
+    passwordHash: bcrypt.hashSync('password123', 10),
     id: 3,
     fullName: 'Nguyễn Văn A (KTV Chuyên Sâu)',
     role: 'TECHNICIAN',
@@ -22,7 +24,7 @@ const DEMO_USERS = [
   },
   {
     username: 'ktv_dohuuthang',
-    password: 'password123',
+    passwordHash: bcrypt.hashSync('password123', 10),
     id: 5,
     fullName: 'Đỗ Hữu Thắng (KTV Trung Cấp)',
     role: 'TECHNICIAN',
@@ -30,7 +32,7 @@ const DEMO_USERS = [
   },
   {
     username: 'ktv_lequocbao',
-    password: 'password123',
+    passwordHash: bcrypt.hashSync('password123', 10),
     id: 6,
     fullName: 'Lê Quốc Bảo (KTV Sơ Cấp)',
     role: 'TECHNICIAN',
@@ -44,11 +46,9 @@ class AuthService {
       throw new AppError('DU_LIEU_KHONG_HOP_LE', 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu');
     }
 
-    const user = DEMO_USERS.find(
-      u => u.username === username.trim() && u.password === password
-    );
+    const user = DEMO_USERS.find(u => u.username === username.trim());
 
-    if (!user) {
+    if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
       throw new AppError('XAC_THUC_KHONG_HOP_LE', 'Tên đăng nhập hoặc mật khẩu không chính xác');
     }
 

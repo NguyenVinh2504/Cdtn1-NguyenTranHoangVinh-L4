@@ -27,8 +27,12 @@ const authRoutes = require('./routes/auth.routes');
 function createApp(customServices = {}) {
   const app = express();
 
-  // Middleware nền tảng
-  app.use(cors());
+  // BUG-06 fix: giới hạn origin CORS thay vì mở tất cả (app.use(cors()))
+  const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+  app.use(cors({ origin: allowedOrigins, credentials: true }));
   app.use(express.json());
 
   // Middleware bảo mật và che thông tin nhạy cảm
