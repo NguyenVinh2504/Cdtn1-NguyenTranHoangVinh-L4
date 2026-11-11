@@ -342,7 +342,7 @@ measurable baseline that an operator can use, written so that it can be handed o
 | Document | Purpose |
 | :--- | :--- |
 | [`docs/test-plan.md`](test-plan.md) | Scope, test types and success criteria of the test campaign |
-| [`docs/test-report.md`](test-report.md) | The 12 executed test cases with their real results |
+| [`docs/test-report.md`](test-report.md) | The 12 core test cases plus 3 white-box regression cases, with their real results |
 | [`docs/bug-log.md`](bug-log.md) | The bugs found and fixed, each with a working commit link |
 | [`docs/checklist-bao-mat.md`](checklist-bao-mat.md) | The 7-item self-assessment security checklist with evidence |
 | [`docs/api-docs/api-reference.md`](api-docs/api-reference.md) | Full REST API reference for every endpoint |
