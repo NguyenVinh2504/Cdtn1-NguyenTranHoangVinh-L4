@@ -109,7 +109,7 @@
 - **4. Khoanh vùng + Nguyên nhân gốc:** `prisma/seed.js` chèn bản ghi với **khoá chính `BIGSERIAL` chỉ định tường minh** (`ticket_id: 1`, `ticket_id: 2`, …) nên sequence `ticket_id_seq` của PostgreSQL **vẫn ở giá trị 1**; lệnh `create()` đầu tiên sau đó sinh `ticket_id = 1` → trùng với bản ghi seed → `P2002`. Bộ test unit BT2–BT3 dùng repository giả in-memory nên **không** có sequence thật và **không** bắt được lỗi này.
 - **5. Cách sửa:** Tạo module mới `prisma/sync-sequences.js` hàm `syncSequences(prisma)` chạy `SELECT setval(pg_get_serial_sequence('<bảng>','<cột>'), COALESCE((SELECT MAX(<cột>) FROM <bảng>), 0) + 1, false)` cho 6 bảng (`service_center`, `issue_category`, `technician`, `customer`, `device`, `ticket`); gọi hàm này ở **cuối** `prisma/seed.js` (sau khi seed xong). Hàm **idempotent** — chạy lại nhiều lần vẫn cho cùng kết quả, không nhân đôi dữ liệu.
 - **6. Xác nhận bằng test:** Test `TC-13` trong `tests/bt3-bugfix.test.js` → **PASS** (kiểm tra SQL `setval` được sinh đúng cho cả 6 bảng với `MAX + 1`); `docker compose exec api npm test` → **7 suites / 52 tests PASS**; phép thử máy trắng lần 2 (`docker compose up -d --build` lại) → `POST /api/tickets` trả **201** và số bản ghi vẫn giữ nguyên 4 phiếu + 1 phiếu mới (chứng minh seed idempotent).
-- **7. Link commit:** *(ghi sau khi commit — xem `git log --oneline` với từ khoá `BUG-10`)*.
+- **7. Link commit:** [`630b593`](https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4/commit/630b5936ec3bf5d9b0cfd74cf8c7f847c3bcafe4) — `fix(bt3): sua 3 loi phat hien bang phep thu may trang (BUG-10/11/12)` (3 files mã nguồn + `prisma/sync-sequences.js` + `tests/bt3-bugfix.test.js`).
 
 ### BUG-11 (Major — P2002): Mã phiếu bị trùng sau khi xoá phiếu (generateTicketCode dùng COUNT(*))
 - **1. Mã + Mức độ:** `BUG-11` — **Major** (vi phạm ràng buộc duy nhất `ticket_code`; phát hiện bởi **phép thử máy trắng**: xoá 1 phiếu rồi tạo phiếu mới).
@@ -118,7 +118,7 @@
 - **4. Khoanh vùng + Nguyên nhân gốc:** `src/repositories/ticket.repository.js` — `generateTicketCode()` dùng `count({ where: { centerId } })` để tính số thứ tự. Nguyên nhân: đếm số bản ghi **đang tồn tại** ≠ **giá trị lớn nhất đã dùng**; khi có bản ghi bị xoá, số đếm lùi và mã mới lặp lại mã cũ.
 - **5. Cách sửa:** `generateTicketCode()` thay `count()` bằng `findFirst({ where: { centerId }, orderBy: { ticketId: 'desc' } })` để lấy `MAX(ticket_id)` của trung tâm rồi `+ 1`; mã luôn tăng đơn điệu kể cả sau khi xoá.
 - **6. Xác nhận bằng test:** Test `TC-14` trong `tests/bt3-bugfix.test.js` → **PASS** (repository giả lập `findFirst` trả `ticketId = 4` → mã sinh ra là `BH-2-00005/2026`, không trùng); `npm test` → **7 suites / 52 tests PASS**.
-- **7. Link commit:** *(ghi sau khi commit — xem `git log --oneline` với từ khoá `BUG-11`)*.
+- **7. Link commit:** [`630b593`](https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4/commit/630b5936ec3bf5d9b0cfd74cf8c7f847c3bcafe4) — `fix(bt3): sua 3 loi phat hien bang phep thu may trang (BUG-10/11/12)` (3 files mã nguồn + `prisma/sync-sequences.js` + `tests/bt3-bugfix.test.js`).
 
 ### BUG-12 (Major — A01 Broken Access Control / QT-14): KTV đặt được lịch hẹn cho phiếu của KTV khác
 - **1. Mã + Mức độ:** `BUG-12` — **Major** (A01 Broken Access Control; vi phạm QT-14 "KTV chỉ được phân công và đặt lịch hẹn cho phiếu của chính mình"; phát hiện bởi **phép thử máy trắng** trên container thật).
@@ -127,7 +127,7 @@
 - **4. Khoanh vùng + Nguyên nhân gốc:** `src/services/ticket.service.js` — `scheduleAppointment()` **không nhận tham số `caller`** nên không có dữ liệu để so sánh `ticket.technicianId` với người gọi; `src/routes/ticket.routes.js` cũng không truyền `req.user` xuống. Nguyên nhân gốc là khi vá BUG-04/BUG-07 (đường đọc và ghi trạng thái) **đã bỏ sót đường đặt lịch hẹn** — cùng một nguyên tắc A01 nhưng áp dụng không đầy đủ.
 - **5. Cách sửa:** `scheduleAppointment()` nhận thêm tham số `caller` (`req.user`); khi `caller.role === 'TECHNICIAN'` mà `ticket.technicianId !== caller.id` → ném `KHONG_CO_QUYEN` (→ HTTP 403 qua `errorHandler`); `src/routes/ticket.routes.js` truyền `req.user` xuống cho `POST /:id/appointment`.
 - **6. Xác nhận bằng test:** Test `TC-15` trong `tests/bt3-bugfix.test.js` → **PASS** (KTV khác chủ phiếu → 403 `KHONG_CO_QUYEN`, repository `create` **không** được gọi; chủ phiếu → 200); `npm test` → **7 suites / 52 tests PASS**.
-- **7. Link commit:** *(ghi sau khi commit — xem `git log --oneline` với từ khoá `BUG-12`)*.
+- **7. Link commit:** [`630b593`](https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4/commit/630b5936ec3bf5d9b0cfd74cf8c7f847c3bcafe4) — `fix(bt3): sua 3 loi phat hien bang phep thu may trang (BUG-10/11/12)` (3 files mã nguồn + `prisma/sync-sequences.js` + `tests/bt3-bugfix.test.js`).
 
 ---
 
