@@ -51,7 +51,7 @@
 - **3. Tái lập:** `npx jest tests/bt3-new.test.js` (không cần CSDL) → `TC-SEC-01` FAIL tại `expect(resPatch.status).toBe(403)` — `Expected: 403 / Received: 200`; log `>>> [KẾT QUẢ THỰC TẾ] TC-SEC-01` ghi `DA_PHAN_CONG → DANG_XU_LY`, `statusHistory` 2 → 3 phần tử.
 - **4. Khoanh vùng + Nguyên nhân gốc:** Không route nào trong `src/routes/ticket.routes.js` gọi `authorize()`; `src/services/ticket.service.js` (`transitionStatus`/`updateTicket`) không so sánh `ticket.technicianId` với người gọi (`req.user.id`) khi `role = TECHNICIAN`.
 - **5. Cách sửa:** `transitionStatus()`/`updateTicket()` nhận thêm `caller` (`req.user`) và ném `KHONG_CO_QUYEN` (→ HTTP 403 qua `errorHandler`) khi `caller.role === 'TECHNICIAN'` mà `ticket.technicianId ≠ caller.id`; `ticket.routes.js` truyền `req.user` xuống cho `PUT /:id` và `PATCH /:id/status`.
-- **6. Link commit (sau `v0.2`):** `9add2b8e64e16634ac38c8cd42c27e09e66bf676` — `fix(security): chan KTV sua phieu cua KTV khac (BUG-04 A01/QT-14)` (2 files: `src/services/ticket.service.js`, `src/routes/ticket.routes.js`).
+- **6. Link commit (sau `v0.2`):** [`9add2b8`](https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4/commit/9add2b8e64e16634ac38c8cd42c27e09e66bf676) — `fix(security): chan KTV sua phieu cua KTV khac (BUG-04 A01/QT-14)` (2 files: `src/services/ticket.service.js`, `src/routes/ticket.routes.js`).
 - **7. Xác nhận bằng test:** `npx jest tests/bt3-new.test.js` → `TC-SEC-01` **PASS** (cả 2 request **403** `KHONG_CO_QUYEN`, dữ liệu không đổi); `npm test` → **6 suites / 42 tests PASS**.
 
 ### BUG-05 (Critical — thiếu xác thực JWT / NFR2): API nghiệp vụ cho request ẩn danh
@@ -60,7 +60,7 @@
 - **3. Tái lập:** `npx jest tests/bt3-new.test.js` → `TC-SEC-02` FAIL tại `expect(resList.status).toBe(401)` — `Expected: 401 / Received: 200`; log `>>> [KẾT QUẢ THỰC TẾ] TC-SEC-02` ghi bước 1–2 HTTP 200.
 - **4. Khoanh vùng + Nguyên nhân gốc:** `src/middlewares/auth.middleware.js` — nhánh fallback cuối `authenticate()` gán mọi request ẩn danh thành `{ role: 'CENTER_MANAGER', centerId: 2 }` để demo nhanh, vô hiệu hóa toàn bộ lớp xác thực.
 - **5. Cách sửa:** Xóa fallback manager mặc định → request ẩn danh tới API nghiệp vụ `next(new AppError('XAC_THUC_KHONG_HOP_LE', …))` (→ HTTP 401); giữ whitelist công khai `['/health', '/', '/api/auth/login']` cho healthcheck Docker và login; sửa `RT-7` theo chữ ký `updateTicket(id, data, caller)` mới.
-- **6. Link commit (sau `v0.2`):** `06c3180ea518c38dad8cd0204ab0c22e7252e47c` — `fix(security): bat buoc JWT cho API nghiep vu, bo fallback manager mac dinh (BUG-05 NFR2)` (2 files: `src/middlewares/auth.middleware.js`, `tests/api.routes.test.js`).
+- **6. Link commit (sau `v0.2`):** [`06c3180`](https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4/commit/06c3180ea518c38dad8cd0204ab0c22e7252e47c) — `fix(security): bat buoc JWT cho API nghiep vu, bo fallback manager mac dinh (BUG-05 NFR2)` (2 files: `src/middlewares/auth.middleware.js`, `tests/api.routes.test.js`).
 - **7. Xác nhận bằng test:** `npx jest tests/bt3-new.test.js` → `TC-SEC-02` **PASS** (không token → **401** `XAC_THUC_KHONG_HOP_LE`; token sai → **401** `TOKEN_HET_HAN`; `GET /health` vẫn **200**); `npm test` → **6 suites / 42 tests PASS**.
 
 ### BUG-06 (Major — CORS mở + mật khẩu plaintext): cấu hình bảo mật yếu
@@ -69,5 +69,5 @@
 - **3. Tái lập:** Đọc `src/app.js` (`app.use(cors())` không tham số) và `src/services/auth.service.js` (`password: 'password123'` plaintext × 4 user); demo login `manager_tt2/password123` thành công nhưng so sánh chuỗi trực tiếp.
 - **4. Khoanh vùng + Nguyên nhân gốc:** Cấu hình demo nhanh từ BT2 chưa siết theo NFR2/checklist bảo mật: CORS mặc định mở + chưa dùng `bcryptjs` (dù đã có trong `dependencies`).
 - **5. Cách sửa:** `src/app.js`: `cors({ origin: FRONTEND_URL.split(','), credentials: true })`; `src/services/auth.service.js`: chỉ lưu `passwordHash = bcrypt.hashSync('password123', 10)`, login dùng `bcrypt.compareSync(password, user.passwordHash)`.
-- **6. Link commit (sau `v0.2`):** `80bdad804ed3cfc51b97e89db967621aa4974a78` — `fix(security): bam mat khau bcrypt + gioi han CORS theo FRONTEND_URL (BUG-06)` (2 files: `src/services/auth.service.js`, `src/app.js`).
+- **6. Link commit (sau `v0.2`):** [`80bdad8`](https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4/commit/80bdad804ed3cfc51b97e89db967621aa4974a78) — `fix(security): bam mat khau bcrypt + gioi han CORS theo FRONTEND_URL (BUG-06)` (2 files: `src/services/auth.service.js`, `src/app.js`).
 - **7. Xác nhận bằng test:** Script login: đúng pass → JWT (`role = CENTER_MANAGER`); sai pass → `401 XAC_THUC_KHONG_HOP_LE`; `npm test` → **6 suites / 42 tests PASS** (không hồi quy).

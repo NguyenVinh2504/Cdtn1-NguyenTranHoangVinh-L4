@@ -78,7 +78,7 @@ Ngoài 5 quy tắc trên, bộ kiểm thử còn bao phủ **3 quy tắc liên q
 |:---|:---|:---:|:---|:---|:---|
 | **TC-01** | Unit | 1 | **QT-04** | Tính hạn SLA tự động với 3 mức ưu tiên từ `received_at` cố định | `CAO` +24h (86 400 000 ms) · `TRUNG_BINH` +72h (259 200 000 ms) · `THAP` +120h (432 000 000 ms), đúng tuyệt đối |
 | **TC-02** | Unit | 1 | **QT-08** | Phân công KTV `proficiency = 5`, cùng trung tâm | `status = DA_PHAN_CONG`, `technicianId` đúng, `status_history` dài +1 |
-| **TC-03** | Unit | 1 | **QT-06** | Chuyển trạng thái hợp lệ trong flow phân công (`MOI → DA_PHAN_CONG` + ghi log JSONB) | `status = DA_PHAN_CONG`, append `{from,to,at,by,note}` vào JSONB |
+| **TC-03** | Unit | 1 | **QT-04** | Cập nhật ưu tiên → tự động tính lại hạn SLA (`CAO` → `TRUNG_BINH` = +72h) | `priority = TRUNG_BINH`, `dueDate = receivedAt + 72h` |
 | **TC-04** | Unit | 1 + 3 | **FR4** | (a) Đặt lịch hẹn khung giờ **không** trùng → lưu thành công; (b) khung giờ trùng → từ chối | (a) `appointmentAt` + `SCHEDULED` OK; (b) `LICH_HEN_XUNG_DOT` + `update` 0 lần |
 | **TC-05** | Unit | 1 | **QT-15** | Che số điện thoại ở tầng middleware: `0901234567` | Trả về đúng `090****567`, giữ nguyên kiểu `Date` |
 | **TC-06** | Unit | 2 | **QT-08** | **Biên đạt:** KTV `proficiency = 3` (đúng ngưỡng tối thiểu) | Phân công **thành công**, `status = DA_PHAN_CONG` |
@@ -193,14 +193,14 @@ Lệnh `npm test` được khai báo trong `package.json` là:
 
 ```
 Test Suites: 1 failed, 5 passed, 6 total
-Tests:       2 failed, 45 passed, 47 total    # 2 FAIL là TC-11 (SEC-01) + TC-P1 (SEC-02) — đúng dự kiến, truy vết BUG-04/BUG-05
+Tests:       2 failed, 40 passed, 42 total    # 2 FAIL là TC-11 (SEC-01) + TC-P1 (SEC-02) — đúng dự kiến, truy vết BUG-04/BUG-05
 ```
 
 **Sau khi fix BUG-04/BUG-05/BUG-06 và commit riêng từng bug:**
 
 ```
 Test Suites: 6 passed, 6 total
-Tests:       47 passed, 47 total
+Tests:       42 passed, 42 total
 Snapshots:   0 total
 Time:        < 60 s
 ```

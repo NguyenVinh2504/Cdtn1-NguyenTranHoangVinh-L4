@@ -226,7 +226,7 @@
 | **7. Kết quả thực tế** | Lần 1 (`npm run db:setup`): exit 0, `🌱…🎉 Hoàn tất Seed`. Đếm BEFORE = `{"service_center":6,"issue_category":6,"technician":8,"customer":4,"device":4,"ticket":4}`. Lần 2 (`npm run db:seed` ngày 2026-11-11): exit code **0**, stdout `✅ 6 TT · ✅ 6 nhóm sự cố · ✅ KTV · ✅ KH · ✅ thiết bị · ✅ phiếu` + `🎉 Hoàn tất`. Đếm AFTER = `{"service_center":6,"issue_category":6,"technician":8,"customer":4,"device":4,"ticket":4}` — **không đổi**. `ticket_code` = `BH-2-00001/2026,BH-2-00002/2026,BH-2-00003/2026,BH-2-00004/2026` (không trùng); `phone` = `0901234567,0912345678,0933456789,0944567890` (không trùng). |
 | **8. PASS / FAIL** | **PASS** |
 
-> **Ghi chú:** `prisma/seed.js` dùng `upsert()` nên thiết kế idempotent. Test này **xác nhận** trên CSDL thật thay vì chỉ tin đọc mã.
+> **Ghi chú:** `prisma/seed.js` dùng `upsert()` nên thiết kế idempotent. Test này **xác nhận** trên CSDL thật thay vì chỉ tin đọc mã. Minh chứng terminal: `docs/screenshots/tc-12_reseed_evidence.txt` (BEFORE = AFTER = 6/6/8/4/4/4, exit 0, ngày 2026-11-11).
 
 ---
 
@@ -244,7 +244,7 @@
 | TC-08 | 3 | Unit | QT-06 | `TRANG_THAI_KHONG_HOP_LE`, update 0 lần | **PASS** |
 | TC-09 | 3 | Unit | FR4 | `LICH_HEN_XUNG_DOT`, update 0 lần | **PASS** |
 | TC-10 | 3 | Unit | QT-08 | `KTV_KHONG_CUNG_TRUNG_TAM` | **PASS** |
-| TC-11 | 4 | API | A01 / QT-14 | Không token lạ 403 `KHONG_CO_QUYEN`, dữ liệu không đổi | **PASS** |
+| TC-11 | 4 | API | A01 / QT-14 | KTV lạ id=5 sửa phiếu của KTV id=3 → 403 `KHONG_CO_QUYEN`, dữ liệu không đổi | **PASS** |
 | TC-12 | 5 | Thủ công (DB thật) | — (seed) | Seed lần 2: exit 0, 6/6/8/4/4/4 không đổi, không trùng | **PASS** |
 
 **Trạng thái cuối (sau fix BUG-04/BUG-05/BUG-06 + chạy TC-12): 12/12 PASS.** Phụ lục `TC-P1` (SEC-02) PASS → `BUG-05`; `TC-P2` (U10) PASS.
