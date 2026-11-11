@@ -8,6 +8,14 @@
 **Track:** Kỹ thuật phần mềm (SE)  
 **Tiêu chuẩn tham chiếu:** Rút gọn theo tinh thần chuẩn ISO/IEC/IEEE 29148:2018
 
+> **📌 Ghi chú phiên bản (BT3 — 11/11/2026):** Bảng truy vết ở **Mục 6** đã được **đồng bộ lại
+> với hệ thống thật** sau phép thử máy trắng trên Docker Compose: thêm cột
+> **"Endpoint thực thi (BT3)"** ánh xạ từng FR → User Story → Use Case → **endpoint thật**
+> trong mã nguồn, và thêm Mục 6.1 (endpoint CRUD nền tảng) + Mục 6.2 (yêu cầu phi chức năng
+> kiểm chứng bằng phép thử máy trắng). Bản BT1 mô tả 5 endpoint không tồn tại trong mã nguồn —
+> xem bảng ánh xạ chi tiết tại [`docs/api-contract.md`](api-contract.md) Mục 2.1 và
+> [`docs/thay-doi-thiet-ke.md`](thay-doi-thiet-ke.md) Thay đổi 16.
+
 ---
 
 ## 1. GIỚI THIỆU VÀ PHẠM VI HỆ THỐNG
@@ -183,13 +191,46 @@ _Các quy tắc nghiệp vụ trích xuất trực tiếp từ Mục 9 của Cas
 
 _Bảng đối chiếu xuyên suốt giữa Yêu cầu chức năng ↔ User Story ↔ Use Case ↔ MoSCoW ↔ Kịch bản kiểm thử (Test Case):_
 
-| Mã FR   | Tên Yêu cầu chức năng                                                 | User Story liên quan | Use Case liên quan | Mức MoSCoW | Quy tắc QT liên quan | Test Case thực tế (BT3) |
-|:-------:|:--------------------------------------------------------------------- |:--------------------:|:------------------:|:----------:|:--------------------:|:------------------------:|
-| **FR1** | Tra cứu danh sách phiếu bảo hành chờ phân công theo trung tâm         | **US1**              | **UC1**            | **MUST**   | QT-14 | `TC-11` (A01 đường đọc — `GET /unassigned` 403 với KTV) |
-| **FR2** | Phân công kỹ thuật viên cho phiếu bảo hành theo tay nghề và trung tâm | **US2**              | **UC2**            | **MUST**   | QT-06, QT-07, QT-08, QT-11 | `TC-02`, `TC-06`, `TC-07`, `TC-10`, `TC-P4`, `TC-P5`, `TC-P6` |
-| **FR3** | Xem danh sách phiếu bảo hành được giao sắp xếp theo hạn cam kết SLA   | **US3**              | **UC3**            | **MUST**   | QT-04, QT-15 | `TC-01`, `TC-05`, `TC-11` |
-| **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | FR4 | `TC-04` (không trùng), `TC-09` (trùng) |
-| **FR5** | Giám sát và thống kê khối lượng công việc hiện tại của kỹ thuật viên  | **US5**              | **UC5**            | **SHOULD** | QT-11 | `TC-P5` (biên đạt), `TC-P6` (biên rớt) |
-| **FR6** | Cập nhật tiến độ và ghi nhận chuyển trạng thái phiếu bảo hành         | **US6**              | **UC6**            | **SHOULD** | QT-06, QT-14 | `TC-02`, `TC-08`, `TC-P3`, `TC-11` |
-| **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US2**              | **UC7**            | **COULD**  | QT-07 | `TC-P4` |
-| **FR8** | Xem danh sách lịch hẹn giao nhận cá nhân trong ngày của kỹ thuật viên | **US7**              | **UC8**            | **COULD**  | QT-14, QT-15 | `TC-11`, `TC-05` |
+| Mã FR   | Tên Yêu cầu chức năng                                                 | User Story liên quan | Use Case liên quan | Mức MoSCoW | Quy tắc QT liên quan | Endpoint thực thi (BT3) | Test Case thực tế (BT3) |
+|:-------:|:--------------------------------------------------------------------- |:--------------------:|:------------------:|:----------:|:--------------------:|:------------------------:|:------------------------:|
+| **FR1** | Tra cứu danh sách phiếu bảo hành chờ phân công theo trung tâm         | **US1**              | **UC1**            | **MUST**   | QT-14 | `GET /api/tickets/unassigned` | `TC-11` (A01 đường đọc — `GET /unassigned` 403 với KTV) |
+| **FR2** | Phân công kỹ thuật viên cho phiếu bảo hành theo tay nghề và trung tâm | **US2**              | **UC2**            | **MUST**   | QT-06, QT-07, QT-08, QT-11 | `POST /api/tickets/{id}/assign` | `TC-02`, `TC-06`, `TC-07`, `TC-10`, `TC-P4`, `TC-P5`, `TC-P6` |
+| **FR3** | Xem danh sách phiếu bảo hành được giao sắp xếp theo hạn cam kết SLA   | **US3**              | **UC3**            | **MUST**   | QT-04, QT-15 | `GET /api/tickets/technician/mine`, `GET /api/tickets` | `TC-01`, `TC-05`, `TC-11` |
+| **FR4** | Đặt lịch hẹn giao – nhận thiết bị và kiểm tra xung đột trùng lịch     | **US4**              | **UC4**            | **SHOULD** | QT-07 | `POST /api/tickets/{id}/appointment` | `TC-04` (không trùng), `TC-09` (trùng) |
+| **FR5** | Giám sát và thống kê khối lượng công việc hiện tại của kỹ thuật viên  | **US5**              | **UC5**            | **SHOULD** | QT-11 | `GET /api/technicians/candidates-for-ticket/{ticketId}` (trường `workload`) | `TC-P5` (biên đạt), `TC-P6` (biên rớt) |
+| **FR6** | Cập nhật tiến độ và ghi nhận chuyển trạng thái phiếu bảo hành         | **US6**              | **UC6**            | **SHOULD** | QT-06, QT-14 | `PATCH /api/tickets/{id}/status` | `TC-02`, `TC-08`, `TC-P3`, `TC-11` |
+| **FR7** | Điều chuyển phiếu bảo hành sang kỹ thuật viên khác kèm lý do          | **US2**              | **UC7**            | **COULD**  | QT-07 | `POST /api/tickets/{id}/assign` (dùng lại, `note` bắt buộc) | `TC-P4` |
+| **FR8** | Xem danh sách lịch hẹn giao nhận cá nhân trong ngày của kỹ thuật viên | **US7**              | **UC8**            | **COULD**  | QT-14, QT-15 | `GET /api/tickets/technician/mine` (đọc `appointmentAt` trong bản ghi phiếu) | `TC-11`, `TC-05` |
+
+### 6.1. Endpoint hỗ trợ các yêu cầu CRUD bổ trợ (BT3)
+
+> Các endpoint dưới đây **không** thuộc một FR riêng mà là endpoint CRUD nền tảng, cần có để
+> các FR trên **chạy được trên hệ thống thật**. Đề BT1 đã mô tả 5 endpoint "ma" không tồn tại
+> (`GET /api/technicians/me/tickets`, `GET /api/technicians/workload`,
+> `PATCH /api/tickets/{id}/appointment`, `GET /api/tickets/{id}/appointments`,
+> `POST /api/tickets/{id}/reassign`) — xem bảng ánh xạ tại
+> [`docs/api-contract.md`](api-contract.md) Mục 2.1.
+
+| Mã | Endpoint | Mục đích | Phục vụ FR | Mức |
+|:---|:---------|:---------|:----------|:----|
+| FR0 | `POST /api/auth/login` | Cấp JWT kèm vai trò và trung tâm | Tất cả các FR | **MUST** |
+| FR0 | `GET /api/tickets` | Tra cứu danh sách phiếu có phân trang, lọc theo trung tâm / trạng thái / ưu tiên | FR1, FR3 | **MUST** |
+| FR0 | `GET /api/tickets/{id}` | Xem chi tiết một phiếu | FR1, FR3, FR6 | **MUST** |
+| FR0 | `POST /api/tickets` | Tiếp nhận phiếu mới, tự sinh mã phiếu và hạn SLA (QT-04) | FR1 | **MUST** |
+| FR0 | `PUT /api/tickets/{id}` | Sửa nội dung phiếu (mô tả sự cố, ưu tiên) | FR6 | **MUST** |
+| FR0 | `DELETE /api/tickets/{id}` | Hủy phiếu khi còn ở trạng thái `MOI` | FR1 | SHOULD |
+| FR0 | `GET /api/technicians` | Xem danh sách KTV của trung tâm | FR5 | SHOULD |
+| FR0 | `GET /api/technicians/{id}` | Xem hồ sơ một KTV | FR5 | SHOULD |
+| FR0 | `POST /api/technicians` | Thêm mới KTV vào trung tâm | FR5 | SHOULD |
+| FR0 | `PUT /api/technicians/{id}` | Cập nhật hồ sơ KTV | FR5 | COULD |
+| FR0 | `DELETE /api/technicians/{id}` | Vô hiệu hóa KTV (soft delete, QT-13) | FR5 | COULD |
+| FR0 | `GET /health`, `GET /` | Healthcheck Docker và banner dịch vụ | Hạ tầng vận hành | Hạ tầng |
+
+### 6.2. Yêu cầu phi chức năng được kiểm chứng bằng phép thử máy trắng (BT3)
+
+| Mã NFR | Nội dung | Bằng chứng kiểm chứng | Test Case |
+|:-------|:---------|:----------------------|:----------|
+| NFR1 | Hiệu năng truy vấn đọc với index phù hợp | Index `idx_ticket_status_center_received`, `idx_ticket_tech_due_date` trong migration `20261029000000_init` | `TC-01` |
+| NFR2 | Bảo mật & kiểm soát truy cập (JWT 100 %, che SĐT theo QT-15) | 7 mục checklist bảo mật đều có lệnh kiểm chứng thật | `TC-11`, `TC-15` — xem [`docs/checklist-bao-mat.md`](checklist-bao-mat.md) |
+| NFR3 | Tính nhất quán khi phân công song song | Transaction + khoá dòng `SELECT … FOR UPDATE` tại `src/repositories/ticket.repository.js` | `TC-P3` |
+| NFR4 | Tính sẵn sàng và khả năng tái lập | 3 dịch vụ Docker `healthy`, dữ liệu mẫu nạp tự động, seed idempotent | `TC-13`, `TC-14` — xem [`docs/deployment-guide.md`](deployment-guide.md) |

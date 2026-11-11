@@ -6,8 +6,39 @@
 - **MSSV:** 2374802010562
 - **Track chuyên ngành:** Kỹ thuật phần mềm (SE)
 - **Học phần:** Chuyên đề tốt nghiệp 1 (HK261, 2026–2027) — Khoa CNTT, Đại học Văn Lang
-- **Tiến độ hiện tại:** Hoàn tất Giai đoạn 2 — **Buổi 12** (Nghiệm thu toàn bộ Module cốt lõi và Release `v0.2`)
-- **Phiên bản release:** `v0.2` (Tag: `v0.2`)
+- **Tiến độ hiện tại:** Hoàn tất Giai đoạn 3 — **Bài tập 3** (Kiểm thử theo đặc tả, sửa lỗi, đóng gói Docker và tài liệu kỹ thuật; Release `v1.0`)
+- **Phiên bản release:** `v1.0` (Tag: `v1.0`)
+
+---
+
+## 0. Chạy hệ thống trong 2 lệnh
+
+Yêu cầu duy nhất: **Docker Desktop đang chạy**. Không cần cài Node.js, npm hay PostgreSQL.
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Sau khoảng 30–60 giây, mở **http://localhost:5173** và đăng nhập bằng tài khoản demo
+`manager_tt2` / `password123`. Kiểm tra API tại **http://localhost:3000/health**.
+
+> Trên Windows Command Prompt, nếu `cp` không nhận, dùng `copy .env.example .env`.
+> Hướng dẫn đầy đủ (yêu cầu, biến môi trường, dữ liệu mẫu, kiểm chứng, xử lý sự cố):
+> [`docs/deployment-guide.md`](docs/deployment-guide.md).
+
+### Tài liệu Bài tập 3
+
+| Tài liệu | Nội dung |
+| :--- | :--- |
+| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Hướng dẫn triển khai 5 mục + Troubleshooting + Monitoring & Alerts |
+| [`docs/checklist-bao-mat.md`](docs/checklist-bao-mat.md) | Checklist bảo mật 7 mục, mỗi mục có lệnh minh chứng chạy thật |
+| [`docs/api-docs/README.md`](docs/api-docs/README.md) | Chỉ mục API Reference (17 endpoint nghiệp vụ) + OpenAPI 3.0 |
+| [`docs/test-plan.md`](docs/test-plan.md) | Kế hoạch kiểm thử theo đặc tả |
+| [`docs/test-report.md`](docs/test-report.md) | Báo cáo kết quả 52 test case |
+| [`docs/bug-log.md`](docs/bug-log.md) | Bug Log 12 lỗi, gồm 3 lỗi phát hiện bằng phép thử máy trắng |
+| [`docs/thay-doi-thiet-ke.md`](docs/thay-doi-thiet-ke.md) | Nhật ký thay đổi thiết kế qua 3 giai đoạn |
+| [`docs/ai-disclosure.md`](docs/ai-disclosure.md) | Phụ lục khai báo sử dụng công cụ AI |
 
 ---
 
@@ -22,7 +53,7 @@ Hệ thống Smart CRM - Luồng L4 giải quyết trọn vẹn bài toán đi�
 - **Frontend:** React 18, Vite, Tailwind CSS, Lucide Icons. Kiến trúc gọi API tách lớp riêng (`src/api/client.js`, `tickets.api.js`, `technicians.api.js`), xử lý tập trung 3 trạng thái (Đang tải, Rỗng có nút xóa lọc, Lỗi có nút thử lại).
 - **Backend:** Node.js 20 LTS, Express, Prisma ORM 5. Kiến trúc tách rời nghiêm ngặt 3 tầng: `routes/` (HTTP & mapping mã lỗi) ↔ `services/` (chứa toàn bộ quy tắc nghiệp vụ, không phụ thuộc HTTP) ↔ `repositories/` (truy xuất CSDL).
 - **Cơ sở dữ liệu:** PostgreSQL 16 (Lược đồ 6 bảng chuẩn 3NF: `customer`, `device`, `service_center`, `issue_category`, `technician`, `ticket`). Lịch sử chuyển trạng thái lưu dưới dạng `status_history` (JSONB Document-in-Row).
-- **Kiểm thử tự động:** Jest, 29 unit & integration test cases bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data).
+- **Kiểm thử tự động:** Jest, **52 unit & integration test cases** (7 test suite) bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data) — trong đó có **12 mã TC cốt lõi** của BT3 (`TC-01`…`TC-12`) và **3 test hồi quy** cho các lỗi phát hiện bằng phép thử máy trắng (`TC-13`…`TC-15`).
 - **Đóng gói & Triển khai:** Docker, `docker-compose.yml` (chạy toàn bộ backend + frontend + database bằng 1 lệnh).
 
 ---
@@ -63,7 +94,7 @@ Theo góp ý đánh giá Bài tập 1, hệ thống đã chuẩn hóa và giải
 Mở terminal (PowerShell, Command Prompt hoặc Terminal) và thực hiện clone dự án:
 
 ```bash
-git clone --branch v0.2 https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4.git
+git clone --branch v1.0 https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4.git
 cd Cdtn1-NguyenTranHoangVinh-L4
 ```
 *(Nếu nhận mã nguồn qua tệp nén `.zip`, giải nén và mở cửa sổ dòng lệnh tại thư mục gốc `Cdtn1-NguyenTranHoangVinh-L4`)*
@@ -129,9 +160,11 @@ Mở 2 cửa sổ terminal riêng biệt để khởi động cả 2 dịch vụ
 Nếu máy đã cài đặt và đang bật **Docker Desktop**, bạn có thể khởi chạy toàn bộ 3 dịch vụ (Web + API + DB) mà không cần cài đặt Node.js:
 
 ```bash
+cp .env.example .env
 docker compose up -d --build
 ```
 *(Lưu ý: Nếu hệ thống sử dụng Docker Compose v1 cũ hơn, hãy dùng lệnh: `docker-compose up -d --build`)*
+Chi tiết đầy đủ về yêu cầu, biến môi trường và cách kiểm chứng: [`docs/deployment-guide.md`](docs/deployment-guide.md).
 
 Sau khi hoàn tất, hệ thống tự động dựng và khởi chạy 3 container độc lập:
 1. **Frontend Web UI (`web`):** Truy cập tại **http://localhost:5173**
@@ -147,9 +180,9 @@ Sau khi hoàn tất, hệ thống tự động dựng và khởi chạy 3 contai
 
 ## 5. Hướng dẫn chạy Bộ kiểm thử (Automated Tests)
 
-*(Yêu cầu: Đã cài Node.js theo mục 4.1. Toàn bộ 29 kịch bản kiểm thử chạy độc lập, không phụ thuộc CSDL nhờ kiến trúc Mock Repository)*:
+*(Yêu cầu: Đã cài Node.js theo mục 4.1 — hoặc chạy trực tiếp trong container: `docker compose exec api npm test`. Toàn bộ 52 kịch bản kiểm thử chạy độc lập, không phụ thuộc CSDL nhờ kiến trúc Mock Repository)*:
 
-Chạy toàn bộ 29 test cases bằng **MỘT lệnh duy nhất** (không phụ thuộc vào CSDL máy cá nhân):
+Chạy toàn bộ 52 test cases bằng **MỘT lệnh duy nhất** (không phụ thuộc vào CSDL máy cá nhân):
 
 ```bash
 npm test
@@ -305,7 +338,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── middlewares/                  # Auth JWT, phoneMasker (QT-15), errorHandler tập trung
 │   ├── app.js                        # Ghép nối các tầng và phục vụ frontend build
 │   └── server.js                     # Khởi động dịch vụ trên cổng 3000
-├── tests/                            # Bộ kiểm thử tự động Jest (29 test cases)
+├── tests/                            # Bộ kiểm thử tự động Jest (52 test cases, 7 suite)
 │   ├── ticket.service.test.js        # Test nghiệp vụ phân công, giá trị biên, dữ liệu sai
 │   ├── technician.service.test.js    # Test quản lý KTV và cân bằng tải
 │   ├── ticket.validator.test.js      # Test kiểm tra dữ liệu đầu vào
@@ -325,7 +358,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 
 ---
 
-## 9. Checklist tiến độ (Nghiệm thu Buổi 12 — Release v0.2)
+## 9. Checklist tiến độ (Nghiệm thu Bài tập 3 — Release v1.0)
 
 - [x] Khắc phục toàn bộ mâu thuẫn dữ liệu giữa SRS, UC, ERD và ghi nhận vào `docs/thay-doi-thiet-ke.md` (Buổi 8).
 - [x] Cập nhật bảng khai báo sử dụng công cụ AI đủ 4 cột (`docs/ai-disclosure.md`).
@@ -334,7 +367,14 @@ Cdtn1-NguyenTranHoangVinh-L4/
 - [x] Tách đủ 3 lớp `routes/`, `services/`, `repositories/`, file service không chứa dấu vết HTTP.
 - [x] Đủ 4 thao tác CRUD trên ít nhất 2 thực thể (`Ticket` và `Technician`).
 - [x] Hiện thực các quy tắc nghiệp vụ cốt lõi: QT-08 (proficiency ≥ 3, cùng trung tâm), QT-06 (vòng đời không đảo ngược, ghi log JSONB), QT-04 (SLA tự động), QT-11 (quá tải KTV), FR4 (xung đột lịch hẹn).
-- [x] 29 kịch bản kiểm thử PASS 100% bằng lệnh `npm test` với 3 loại: luồng đúng, giá trị biên, dữ liệu sai.
+- [x] **52 kịch bản kiểm thử PASS 100%** bằng lệnh `npm test` (7 test suite), gồm 12 mã TC cốt lõi BT3 + 3 test hồi quy cho lỗi phát hiện bằng phép thử máy trắng.
+- [x] Kế hoạch kiểm thử, báo cáo kiểm thử và Bug Log đầy đủ (`docs/test-plan.md`, `docs/test-report.md`, `docs/bug-log.md`).
+- [x] Phép thử máy trắng trên Docker Compose: `down -v` → `up -d --build` → 3 dịch vụ healthy → seed lần 2 không nhân đôi dữ liệu (6/6/8/4/4/4).
+- [x] Đóng gói tái lập được: `.dockerignore`, `npm ci`, chạy bằng `USER node`, healthcheck cho cả `api` và `web`, `.env.example` đủ 17 biến.
+- [x] Deployment Guide (5 mục bắt buộc + Troubleshooting + Monitoring) và Checklist bảo mật 7 mục có minh chứng chạy thật.
+- [x] API Reference 17 endpoint (7 mục/endpoint, ví dụ `curl` thật) + OpenAPI 3.0 + trang chỉ mục.
+- [x] Đồng bộ `api-contract.md` và `srs.md` với 17 endpoint thật; ghi nhận vào `docs/thay-doi-thiet-ke.md`.
+- [x] Phụ lục khai báo AI cập nhật cho giai đoạn 3 với 4 cột bắt buộc.
 - [x] Frontend React với 3 màn hình chính kết nối API thật (M1, M2, M3).
 - [x] Xử lý đủ 3 trạng thái (đang tải, rỗng phân biệt, lỗi kết nối có nút thử lại).
 - [x] Che số điện thoại khách hàng `090****567` cho vai trò KTV (QT-15, NFR2).
