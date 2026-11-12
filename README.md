@@ -395,7 +395,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 - [x] **52 kịch bản kiểm thử PASS 100%** bằng lệnh `npm test` (7 test suite), gồm 12 mã TC cốt lõi BT3 + 3 test hồi quy cho lỗi phát hiện bằng phép thử máy trắng.
 - [x] Kế hoạch kiểm thử, báo cáo kiểm thử và Bug Log đầy đủ (`docs/test-plan.md`, `docs/test-report.md`, `docs/bug-log.md`).
 - [x] Phép thử máy trắng trên Docker Compose: `down -v` → `up -d --build` → 3 dịch vụ healthy → seed lần 2 không nhân đôi dữ liệu (6/6/8/4/4/4).
-- [x] Đóng gói tái lập được: `.dockerignore`, `npm ci`, chạy bằng `USER node`, healthcheck cho cả `api` và `web`, `.env.example` đủ 17 biến.
+- [x] Đóng gói tái lập được: `.dockerignore`, `npm ci`, chạy bằng `USER node`, healthcheck cho cả `api` và `web`, `.env.example` đủ 16 biến.
 - [x] Deployment Guide (5 mục bắt buộc + Troubleshooting + Monitoring) và Checklist bảo mật 7 mục có minh chứng chạy thật.
 - [x] API Reference 17 endpoint (7 mục/endpoint, ví dụ `curl` thật) + OpenAPI 3.0 + trang chỉ mục.
 - [x] Đồng bộ `api-contract.md` và `srs.md` với 17 endpoint thật; ghi nhận vào `docs/thay-doi-thiet-ke.md`.

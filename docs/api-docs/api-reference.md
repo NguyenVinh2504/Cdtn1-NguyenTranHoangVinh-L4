@@ -1012,7 +1012,7 @@ status and the appended history entry:
 
 - Only one exception to the strict forward order is allowed: `CHO_LINH_KIEN → DANG_XU_LY`.
 - A transition to the current status is rejected with HTTP 409 (it is not a transition).
-- When the ticket reaches `DA_DONG` or `DA_HUY`, `closedAt` is stamped automatically.
+- When the ticket reaches `HOAN_TAT` or `DA_DONG`, `closedAt` is stamped automatically. The cancelled state `DA_HUY` does not stamp `closedAt` in the current implementation.
 
 ---
 

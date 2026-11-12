@@ -78,7 +78,7 @@ $ grep -rn "queryRaw\|executeRaw" src/ --include=*.js
 src/repositories/ticket.repository.js:24:    const locked = await this.client.$queryRaw`
 ```
 
-→ Cả 15 truy vấn dữ liệu đi qua Prisma Client với **tham số hoá** (`findUnique`, `findMany`,
+→ Cả **24 lệnh Prisma Client** trong `src/repositories/` đều đi qua **tham số hoá** (`findUnique`, `findMany`,
 `findFirst`, `count`, `create`, `update`). Câu SQL thô duy nhất là
 `SELECT ticket_id FROM ticket WHERE ticket_id = ${id} FOR UPDATE` — dùng **template tag** của
 Prisma nên giá trị vẫn được tham số hoá, không ghép chuỗi.
