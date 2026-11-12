@@ -180,3 +180,11 @@
 - **Thay đổi gì:** Bổ sung bảng nghiệm thu 5 bước (health, login, đọc dữ liệu, mở Web UI, chạy luồng phân công), danh sách 6 ảnh minh chứng cần chụp và bảng xử lý sự cố đặc thù cloud (Render Free cold start, PostgreSQL Free hết hạn, Neon thay thế, CORS, `VITE_API_BASE_URL` bị đóng băng lúc build).
 - **Vì sao:** Điểm công triển khai chỉ được ghi nhận khi có bằng chứng URL công khai và ảnh chụp trạng thái thật; đồng thời giúp người chấm tái lập nhanh nếu dịch vụ Free đang ngủ hoặc database Free đã hết hạn.
 - **Ảnh hưởng tới thành phần nào:** `docs/trien-khai-cloud.md`, `docs/deployment-guide.md` (Mục 8.5–8.7), `README.md` (mục "Bản chạy online"), `BT3_2374802010562_NguyenTranHoangVinh.docx` (Mục 4 và Mục 7 khi chèn ảnh).
+
+---
+
+### Thay đổi 23: Cập nhật hai URL triển khai thực tế (Vercel + Render) sau khi deploy xong
+
+- **Thay đổi gì:** Thay các URL mẫu/placeholder (`https://<vercel-project>.vercel.app`, `https://mekong-crm-l4.vercel.app`) bằng hai URL công khai thực tế: Frontend Vercel `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` và Backend Render `https://mekong-crm-api.onrender.com`; đồng thời cập nhật `CORS_ORIGIN` / `FRONTEND_URL` trong `render.yaml`, thêm server cloud vào `openapi.yaml`, `api-reference.md`, `docs/api-docs/README.md`, `.env.example`, `README.md`, `docs/deployment-guide.md` và `docs/trien-khai-cloud.md`.
+- **Vì sao:** Đáp ứng yêu cầu mục điểm cộng triển khai BT3 (§3.3): tài liệu kỹ thuật (`Deployment Guide`, `README`) ghi chính xác URL đang hoạt động và cấu hình `render.yaml` khớp domain Vercel thật để tránh lệch CORS.
+- **Ảnh hưởng tới thành phần nào:** `render.yaml`, `README.md`, `.env.example`, `docs/deployment-guide.md`, `docs/trien-khai-cloud.md`, `docs/api-docs/openapi.yaml`, `docs/api-docs/api-reference.md`, `docs/api-docs/README.md`, `docs/thay-doi-thiet-ke.md`.

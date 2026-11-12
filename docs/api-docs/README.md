@@ -46,7 +46,7 @@ curl -s "http://localhost:3000/api/tickets/unassigned?centerId=2" -H "Authorizat
 npx swagger-ui-cli serve docs/api-docs/openapi.yaml
 ```
 
-> **Cloud base URL (after deployment):** `https://mekong-crm-api.onrender.com`.
+> **Live cloud URLs:** API `https://mekong-crm-api.onrender.com` · Web UI `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app`.
 > The live API is deployed with `render.yaml`; see
 > [`docs/trien-khai-cloud.md`](../trien-khai-cloud.md) for the step-by-step guide and
 > [`docs/deployment-guide.md`](../deployment-guide.md#8-cloud-deployment--render-api--postgresql-and-vercel-web-ui)

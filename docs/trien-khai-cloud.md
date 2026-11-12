@@ -89,8 +89,8 @@ Singapore, plan Free. Vào Web Service → **Environment** → thêm biến
 | `NODE_VERSION` | `20` | ➖ | Ghim Node 20 LTS |
 | `API_PREFIX` | `/api` | ➖ | Có trong `render.yaml` |
 | `ALLOW_DEV_AUTH_HEADERS` | `false` | ✅ | Bắt buộc JWT thật; chặn mạo danh bằng header `x-user-role` |
-| `CORS_ORIGIN` | `https://<vercel-app>.vercel.app` | ✅ | **Cập nhật sau khi có URL Vercel** |
-| `FRONTEND_URL` | `https://<vercel-app>.vercel.app` | ✅ | Dùng cho root endpoint/health |
+| `CORS_ORIGIN` | `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` | ✅ | Origin của frontend Vercel đã deploy |
+| `FRONTEND_URL` | `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` | ✅ | Dùng cho root endpoint/health |
 | `PORT` | Render tự cấp | ➖ | Không đặt tay; code đọc `process.env.PORT` |
 
 ### 1.4. Kiểm tra Backend sau khi Render báo Live
@@ -131,7 +131,7 @@ Kết quả đúng có `"success":true` và một chuỗi `"token":"eyJ..."`.
 
 | Trường trên Vercel | Giá trị |
 | :--- | :--- |
-| Project Name | `mekong-crm-l4` (hoặc tên bất kỳ) |
+| Project Name | `cdtn1-nguyen-tran-hoang-vinh-l4` |
 | Framework Preset | **Vite** |
 | Root Directory | **`frontend`** *(khuyến nghị)* |
 | Build Command | `npm run build` |
@@ -151,8 +151,8 @@ Kết quả đúng có `"success":true` và một chuỗi `"token":"eyJ..."`.
 > Không có dấu `/` ở cuối URL. Biến này được **nhúng vào bundle lúc build**,
 > nên nếu sửa sau đó phải bấm **Redeploy** mới có hiệu lực.
 
-4. Bấm **Deploy** → chờ 1–2 phút → nhận URL dạng
-   `https://mekong-crm-l4.vercel.app`.
+4. Bấm **Deploy** → chờ 1–2 phút → nhận URL production:
+   <https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app>.
 
 5. Mở URL đó. Giao diện phải hiện **MEKONG MOBILE CRM** và đăng nhập được bằng
    `manager_tt2` / `password123`.
@@ -167,8 +167,8 @@ Sau khi có URL Vercel thật:
 2. Sửa 2 biến:
 
 ```text
-CORS_ORIGIN = https://mekong-crm-l4.vercel.app
-FRONTEND_URL = https://mekong-crm-l4.vercel.app
+CORS_ORIGIN = https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
+FRONTEND_URL = https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
 ```
 
 3. Bấm **Save Changes**. Render sẽ restart service (khoảng 30–60 giây).
@@ -177,14 +177,14 @@ FRONTEND_URL = https://mekong-crm-l4.vercel.app
 > thêm wildcard (hỗ trợ từ phiên bản BT3 này):
 >
 > ```text
-> CORS_ORIGIN = https://mekong-crm-l4.vercel.app,https://*.vercel.app
+> CORS_ORIGIN = https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app,https://*.vercel.app
 > ```
 >
 > Chỉ dùng wildcard `https://*.vercel.app` cho đồ án/demo. Khi triển khai thật,
 > hãy đặt đúng domain production.
 
 Kiểm tra nhanh CORS bằng DevTools (F12) → tab **Network** → gọi API → response
-phải có header `access-control-allow-origin: https://mekong-crm-l4.vercel.app`.
+phải có header `access-control-allow-origin: https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app`.
 
 ---
 
@@ -197,7 +197,7 @@ Chạy lần lượt 5 bước, chụp màn hình từng bước:
 | 1 | API sống | Mở `https://mekong-crm-api.onrender.com/health` | `"status":"UP"` |
 | 2 | Đăng nhập | `POST /api/auth/login` với `manager_tt2` | `"success":true`, có `token` |
 | 3 | Đọc dữ liệu | `GET /api/tickets/unassigned?centerId=2` kèm Bearer token | `"total":2` |
-| 4 | Frontend sống | Mở URL Vercel | Trang đăng nhập hiện ra |
+| 4 | Frontend sống | Mở `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` | Trang đăng nhập hiện ra |
 | 5 | Luồng nghiệp vụ | Đăng nhập → mở phiếu chờ điều phối → mở modal phân công | Danh sách KTV `proficiency >= 3` hiện ra |
 
 Lệnh kiểm tra 2–3 trên PowerShell:
@@ -275,16 +275,13 @@ Nếu PostgreSQL Free của Render đã hết hạn hoặc không tạo được
 
 ## 8. Việc cần bổ sung vào báo cáo BT3 sau khi deploy xong
 
-Sau khi có URL thật, cập nhật các chỗ sau (đánh dấu `TODO` trong repo):
+Hai URL thật (`https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` và
+`https://mekong-crm-api.onrender.com`) đã được cập nhật vào `README.md`, `render.yaml`,
+`docs/deployment-guide.md`, `docs/trien-khai-cloud.md` và `docs/api-docs/*`. Khi hoàn
+thiện file Word/PDF nộp bài:
 
-1. `README.md` — mục **Live demo**: điền URL Vercel + URL API Render.
-2. `docs/deployment-guide.md` — mục **Cloud deployment**: điền URL thật vào bảng
-   nghiệm thu (nếu muốn).
-3. `BT3_2374802010562_NguyenTranHoangVinh.docx` — Mục 4 đã có tiểu mục **4.6
-   Cloud deployment**; chỉ cần thay `<vercel-project>` bằng URL thật và chèn ảnh
-   chụp vào Mục 7.
-4. `docs/thay-doi-thiet-ke.md` — Thay đổi 21–22 đã ghi nhận hạ tầng cloud; cập nhật
-   URL nếu cần.
+1. Trang bìa `BT3_2374802010562_NguyenTranHoangVinh.docx` (và bản xuất `.pdf`): ghi rõ 2 URL công khai trên.
+2. Mục **4.6 Cloud deployment** trong `.docx`: dán khối mẫu ở Mục 9 dưới đây (đã điền sẵn 2 URL thật) và chèn 6 ảnh chụp minh chứng vào Mục 7.
 
 > Gợi ý đặt tên file ảnh theo thứ tự chụp, ví dụ
 > `docs/screenshots/cloud-01-render-live.png` … `cloud-06-assign-online.png`,
@@ -323,7 +320,7 @@ The start command runs prisma migrate deploy, then the idempotent seed
 /health. Node 20 LTS is pinned by .nvmrc and engines.node.
 
 Live URLs:
-  Web UI:  https://<vercel-project>.vercel.app
+  Web UI:  https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
   API:     https://mekong-crm-api.onrender.com
 
 Verification (screenshots in section 7):

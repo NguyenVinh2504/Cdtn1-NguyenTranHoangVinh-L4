@@ -39,6 +39,8 @@ info:
 servers:
   - url: http://localhost:3000
     description: Local Docker Compose deployment
+  - url: https://mekong-crm-api.onrender.com
+    description: Live cloud deployment on Render (free tier; cold start ~30-60s after inactivity)
 
 tags:
   - name: Infrastructure

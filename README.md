@@ -8,7 +8,7 @@
 - **Học phần:** Chuyên đề tốt nghiệp 1 (HK261, 2026–2027) — Khoa CNTT, Đại học Văn Lang
 - **Tiến độ hiện tại:** Hoàn tất Giai đoạn 3 — **Bài tập 3** (Kiểm thử theo đặc tả, sửa lỗi, đóng gói Docker và tài liệu kỹ thuật; Release `v1.0`)
 - **Phiên bản release:** `v1.0` (Tag: `v1.0`)
-- **Triển khai cloud:** Render (API + PostgreSQL) + Vercel (Web UI) — hướng dẫn tại [`docs/trien-khai-cloud.md`](docs/trien-khai-cloud.md)
+- **Triển khai cloud:** Render (API + PostgreSQL) + Vercel (Web UI) — Web UI: <https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app> · API: <https://mekong-crm-api.onrender.com> ([hướng dẫn](docs/trien-khai-cloud.md))
 
 ---
 
@@ -38,8 +38,8 @@ Hệ thống có sẵn cấu hình triển khai cloud, không cần sửa mã ng
 | Backend Node/Express | **Render** | `render.yaml` |
 | PostgreSQL 16 | **Render** | `render.yaml` (tự inject `DATABASE_URL`) |
 
-- **Live Web UI:** `https://<vercel-project>.vercel.app` *(điền sau khi deploy)*
-- **Live API:** `https://mekong-crm-api.onrender.com` *(tên service lấy từ `render.yaml`)*
+- **Live Web UI:** <https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app>
+- **Live API:** <https://mekong-crm-api.onrender.com> (Health check: <https://mekong-crm-api.onrender.com/health>)
 - **Hướng dẫn bấm từng bước bằng tiếng Việt:** [`docs/trien-khai-cloud.md`](docs/trien-khai-cloud.md)
 - **Hướng dẫn tiếng Anh (dùng cho báo cáo BT3):** [`docs/deployment-guide.md`](docs/deployment-guide.md#8-cloud-deployment--render-api--postgresql-and-vercel-web-ui)
 

@@ -1,7 +1,7 @@
 # API Reference — Mekong Mobile Smart CRM (Flow L4, track SE)
 
 > **System:** Smart CRM – Mekong Mobile, flow **L4 — Technician assignment and appointment scheduling**
-> **Base URL (local):** `http://localhost:3000` · **API prefix:** `/api`
+> **Base URL (local):** `http://localhost:3000` · **Base URL (live cloud):** `https://mekong-crm-api.onrender.com` · **API prefix:** `/api`
 > **Version:** 0.2.0 · **Tag:** `v1.0`
 > **Author:** Nguyen Tran Hoang Vinh — MSSV 2374802010562
 > **Guide language:** English (as required by Assignment 3, track SE)

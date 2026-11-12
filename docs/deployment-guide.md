@@ -2,6 +2,7 @@
 
 > **System:** Smart CRM – Mekong Mobile, flow **L4 — Technician assignment and appointment scheduling**
 > **Repository:** https://github.com/NguyenVinh2504/Cdtn1-NguyenTranHoangVinh-L4
+> **Live demo:** [Web UI (Vercel)](https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app) · [API (Render)](https://mekong-crm-api.onrender.com)
 > **Tag:** `v1.0`
 > **Author:** Nguyen Tran Hoang Vinh — MSSV 2374802010562
 > **Guide language:** English (as required by Assignment 3, section 2.5)
@@ -341,8 +342,13 @@ measurable baseline that an operator can use, written so that it can be handed o
 ## 8. Cloud deployment — Render (API + PostgreSQL) and Vercel (Web UI)
 
 The Docker Compose setup in sections 2–5 is the reproducible local deployment. This
-section adds the **public cloud deployment** used for the live-demo bonus: the API and
-the database run on Render, the static React build runs on Vercel.
+section records the **live public cloud deployment** used for the live-demo bonus: the
+API and the database run on Render, and the static React build runs on Vercel.
+
+**Live public URLs (deployed):**
+- **Web UI (Vercel):** <https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app>
+- **Backend API (Render):** <https://mekong-crm-api.onrender.com>
+- **Health Check:** <https://mekong-crm-api.onrender.com/health>
 
 ```text
 Browser ──HTTPS──► Vercel (React/Vite static)
@@ -404,8 +410,8 @@ Create a PostgreSQL instance named `mekong-crm-db`, then add the environment var
 | `NODE_VERSION` | `20` | no | Matches the Docker runtime |
 | `API_PREFIX` | `/api` | no | Present in `render.yaml` |
 | `ALLOW_DEV_AUTH_HEADERS` | `false` | yes | Forces a real JWT; the `x-user-role` shortcut is disabled on the public API |
-| `CORS_ORIGIN` | `https://<vercel-project>.vercel.app` | yes | Update after the Vercel deployment |
-| `FRONTEND_URL` | `https://<vercel-project>.vercel.app` | yes | Returned by the API root endpoint |
+| `CORS_ORIGIN` | `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` | yes | Production Vercel origin |
+| `FRONTEND_URL` | `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` | yes | Returned by the API root endpoint |
 | `PORT` | supplied by Render | no | The code reads `process.env.PORT` |
 
 The start command performs the same sequence as the Docker image:
@@ -463,23 +469,23 @@ Expected: `"success":true` plus a JWT in `data.token`.
 > No trailing slash. Vite inlines this value at **build time**, so changing it later
 > requires a **Redeploy**.
 
-4. Click **Deploy** and wait for **Ready**. The resulting URL looks like
-   `https://mekong-crm-l4.vercel.app`.
+4. Click **Deploy** and wait for **Ready**. Live production URL:
+   <https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app>.
 
 ### 8.4. Connect the two services (CORS)
 
 In the Render dashboard → `mekong-crm-api` → **Environment**, set:
 
 ```text
-CORS_ORIGIN = https://mekong-crm-l4.vercel.app
-FRONTEND_URL = https://mekong-crm-l4.vercel.app
+CORS_ORIGIN = https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
+FRONTEND_URL = https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
 ```
 
 Save; Render restarts the service. For Vercel preview deployments, a wildcard is also
 accepted (implemented in `src/app.js`):
 
 ```text
-CORS_ORIGIN = https://mekong-crm-l4.vercel.app,https://*.vercel.app
+CORS_ORIGIN = https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app,https://*.vercel.app
 ```
 
 Use the wildcard for the demo only; a production deployment should list exact origins.
@@ -491,7 +497,7 @@ Use the wildcard for the demo only; a production deployment should list exact or
 | 1 | API alive | open `https://mekong-crm-api.onrender.com/health` | `"status":"UP"` |
 | 2 | Authentication | `POST /api/auth/login` with `manager_tt2` | `"success":true` + token |
 | 3 | Business data | `GET /api/tickets/unassigned?centerId=2` with the Bearer token | `"total":2` |
-| 4 | Web UI alive | open the Vercel URL | login page renders |
+| 4 | Web UI alive | open `https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app` | login page renders |
 | 5 | End-to-end flow | sign in → open a pending ticket → open the assignment modal | technicians with `proficiency >= 3` are listed |
 
 Capture screenshots of: the Render service **Live** + database **Available**, the

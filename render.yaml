@@ -60,9 +60,8 @@ services:
         fromDatabase:
           name: mekong-crm-db
           property: connectionString
-      # Cập nhật sau khi có URL Vercel. Có thể khai báo nhiều origin, cách nhau dấu phẩy.
-      # Hỗ trợ wildcard cho preview deployment: https://*.vercel.app
+      # URL Vercel production thực tế (hỗ trợ nhiều origin cách nhau dấu phẩy, hoặc https://*.vercel.app)
       - key: CORS_ORIGIN
-        value: http://localhost:5173
+        value: https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
       - key: FRONTEND_URL
-        value: http://localhost:5173
+        value: https://cdtn1-nguyen-tran-hoang-vinh-l4.vercel.app
