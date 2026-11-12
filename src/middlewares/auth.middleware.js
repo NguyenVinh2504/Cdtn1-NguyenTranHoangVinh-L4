@@ -24,8 +24,11 @@ function authenticate(req, res, next) {
     }
   }
 
-  // Header dev/testing
-  if (req.headers['x-user-role']) {
+  // Header dev/testing: chỉ dùng khi chạy local/test.
+  // Trên cloud, render.yaml đặt ALLOW_DEV_AUTH_HEADERS=false để buộc JWT thật,
+  // tránh việc bất kỳ ai gửi x-user-role cũng mạo danh được quản lý.
+  const allowDevAuthHeaders = process.env.ALLOW_DEV_AUTH_HEADERS !== 'false';
+  if (allowDevAuthHeaders && req.headers['x-user-role']) {
     req.user = {
       id: req.headers['x-user-id'] ? Number(req.headers['x-user-id']) : 1,
       role: req.headers['x-user-role'], // 'CENTER_MANAGER' hoặc 'TECHNICIAN'

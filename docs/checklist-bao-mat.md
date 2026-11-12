@@ -32,6 +32,9 @@
 | 6 | Nhật ký không ghi secret hay dữ liệu cá nhân | A09 | **ĐÃ LÀM** |
 | 7 | Phụ thuộc được ghim phiên bản và đã kiểm cảnh báo lỗ hổng cơ bản | A03 | **ĐÃ LÀM** *(runtime sạch; devDependencies còn cảnh báo)* |
 
+> **Bổ sung cloud:** Mục 8 (sau mục 7) ghi các kiểm soát phát sinh khi triển khai
+> Render + Vercel. Đây là phần bổ sung ngoài 7 mục bắt buộc, không thay thế mục 1–7.
+
 ---
 
 ## 1. Không có secret nào trong repo — ĐÃ LÀM
@@ -276,6 +279,49 @@ $ npm --prefix frontend audit
 động hạ/nâng major version có breaking change (`jest@25.1.0`, `vite@8.3.8`). Kế hoạch cho
 giai đoạn tiếp theo (Chuyên đề tốt nghiệp 2): nâng cấp `vite` lên nhánh 6+/7+ và `nodemon` /
 `jest` theo phiên bản vá mới, rồi chạy lại `npm test` và `npm run build` để kiểm tra tương thích.
+
+---
+
+## 8. Bổ sung khi triển khai cloud (Render + Vercel) — KIỂM CHỨNG SAU DEPLOY
+
+Phần này **không thay thế** 7 mục bắt buộc ở trên; đây là các kiểm soát phát sinh
+khi đưa hệ thống ra Internet. Trạng thái ghi là **ĐÃ CẤU HÌNH** (có trong repo)
+hoặc **KIỂM CHỨNG SAU DEPLOY** (cần chạy trên URL công khai), không ghi "ĐÃ LÀM"
+khi chưa có bằng chứng.
+
+| # | Kiểm soát | Trạng thái | Cách kiểm chứng |
+| :---: | :--- | :--- | :--- |
+| 8.1 | Không có secret thật trong repo cloud | **ĐÃ CẤU HÌNH** | `render.yaml` dùng `generateValue: true` cho `JWT_SECRET`; không có `.env` nào được commit |
+| 8.2 | HTTPS bắt buộc ở cả hai đầu | **KIỂM CHỨNG SAU DEPLOY** | Mở URL Vercel/Render, xác nhận ổ khoá HTTPS; gọi `http://` phải bị chuyển sang `https://` |
+| 8.3 | CORS chỉ cho phép domain thật | **ĐÃ CẤU HÌNH** | `src/app.js` so khớp danh sách `CORS_ORIGIN`; wildcard `https://*.vercel.app` chỉ dùng cho demo |
+| 8.4 | Database không mở công khai | **ĐÃ CẤU HÌNH** | `render.yaml` đặt `ipAllowList: []` (chỉ private network); API dùng **Internal Database URL**, không dùng External URL trong production |
+| 8.5 | JWT secret mạnh, sinh ngẫu nhiên | **KIỂM CHỨNG SAU DEPLOY** | Render → Environment → `JWT_SECRET` hiển thị giá trị đã che; không trùng giá trị demo trong `.env.example` |
+| 8.6 | Biến môi trường được đặt ở nền tảng, không nhúng vào mã | **ĐÃ CẤU HÌNH** | `VITE_API_BASE_URL` đặt trên Vercel; `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN` đặt trên Render |
+| 8.7 | Log không chứa token/mật khẩu | **KIỂM CHỨNG SAU DEPLOY** | Render → Logs, tìm `password`, `Bearer`, `JWT_SECRET` — không được thấy giá trị thật |
+| 8.8 | Database Free hết hạn có kế hoạch thay thế | **ĐÃ GHI NHẬN** | `docs/trien-khai-cloud.md` mục 6 hướng dẫn chuyển sang Neon; `DATABASE_URL` chỉ cần đổi 1 biến |
+| 8.9 | Header dev `x-user-role` bị tắt trên cloud | **ĐÃ CẤU HÌNH** | `render.yaml` đặt `ALLOW_DEV_AUTH_HEADERS=false`; frontend bắt buộc đăng nhập và đổi vai trò bằng JWT thật |
+
+**Minh chứng cần chụp sau khi deploy:**
+
+```bash
+# 1. API trả JSON, không lộ stack trace
+curl -s https://mekong-crm-api.onrender.com/health
+
+# 2. Gọi API không có token phải bị từ chối 401 (không có fallback ẩn danh)
+curl -s -o /dev/null -w "%{http_code}\n" https://mekong-crm-api.onrender.com/api/tickets/unassigned?centerId=2
+
+# 3. Origin lạ không được nhận CORS header
+curl -s -D - -o /dev/null -H "Origin: https://evil.example" \
+  https://mekong-crm-api.onrender.com/health | grep -i access-control
+
+# 4. Header dev x-user-role không còn tác dụng trên cloud -> 401
+curl -s -o /dev/null -w "%{http_code}\n" \
+  -H "x-user-role: CENTER_MANAGER" \
+  https://mekong-crm-api.onrender.com/api/tickets
+```
+
+Kết quả đúng: (1) `"status":"UP"`; (2) `401`; (3) **không** có dòng
+`access-control-allow-origin`; (4) `401`.
 
 ---
 

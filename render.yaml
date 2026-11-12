@@ -1,0 +1,68 @@
+# =============================================================================
+# Render Blueprint — Mekong Mobile Smart CRM (Luồng L4)
+#
+# Cách dùng:
+#   1. Push file này lên nhánh chính của GitHub.
+#   2. Render Dashboard → New → Blueprint → chọn repo này → Apply.
+#   3. Render tự tạo PostgreSQL + Web Service và Inject DATABASE_URL.
+#   4. Sau khi Vercel deploy xong, cập nhật CORS_ORIGIN và FRONTEND_URL bằng
+#      URL Vercel thật (xem docs/trien-khai-cloud.md).
+#
+# Lưu ý free tier:
+#   - Web Service free sẽ "ngủ" sau ~15 phút không có request; request đầu tiên
+#     mất 30–60 giây để đánh thức. Đây là hành vi của Render, không phải lỗi app.
+#   - PostgreSQL free của Render có thời hạn (hiện là 30 ngày). Khi hết hạn,
+#     tạo database mới và cập nhật lại DATABASE_URL, hoặc dùng Neon free.
+# =============================================================================
+
+databases:
+  - name: mekong-crm-db
+    databaseName: mekong_crm_l4
+    user: mekong
+    plan: free
+    region: singapore
+    # Giữ đúng phiên bản đã kiểm thử với Prisma 5.
+    postgresMajorVersion: "16"
+    # Chỉ cho phép kết nối qua private network của Render (không mở ra Internet).
+    ipAllowList: []
+
+services:
+  - type: web
+    name: mekong-crm-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci && npx prisma generate
+    # migrate deploy + seed idempotent + khởi động API.
+    # Chạy lại mỗi lần service khởi động cũng không nhân đôi dữ liệu (mục C8 BT3).
+    startCommand: npm run db:setup && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Ghim Node 20 LTS giống môi trường Docker đã kiểm thử.
+      - key: NODE_VERSION
+        value: "20"
+      - key: API_PREFIX
+        value: /api
+      # Trên cloud: bắt buộc JWT thật, không chấp nhận header x-user-role.
+      - key: ALLOW_DEV_AUTH_HEADERS
+        value: "false"
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      # Render sinh secret ngẫu nhiên, không commit giá trị thật vào repo.
+      - key: JWT_SECRET
+        generateValue: true
+      # Render tự nối chuỗi kết nối nội bộ của PostgreSQL vào biến này.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mekong-crm-db
+          property: connectionString
+      # Cập nhật sau khi có URL Vercel. Có thể khai báo nhiều origin, cách nhau dấu phẩy.
+      # Hỗ trợ wildcard cho preview deployment: https://*.vercel.app
+      - key: CORS_ORIGIN
+        value: http://localhost:5173
+      - key: FRONTEND_URL
+        value: http://localhost:5173

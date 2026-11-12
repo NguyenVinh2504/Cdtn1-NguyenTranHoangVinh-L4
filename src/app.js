@@ -24,15 +24,40 @@ const ticketRoutes = require('./routes/ticket.routes');
 const technicianRoutes = require('./routes/technician.routes');
 const authRoutes = require('./routes/auth.routes');
 
+/**
+ * So khớp một Origin với danh sách cho phép.
+ * Hỗ trợ tiền tố đại diện `*` để dùng được với domain preview của Vercel,
+ * ví dụ: `https://*.vercel.app` hoặc `https://mekong-crm-*.vercel.app`.
+ * Không dùng `*` một mình trong production vì sẽ mở CORS cho mọi website.
+ */
+function originMatches(origin, pattern) {
+  if (pattern === origin) return true;
+  if (!pattern.includes('*')) return false;
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  return new RegExp(`^${escaped}$`).test(origin);
+}
+
 function createApp(customServices = {}) {
   const app = express();
+
+  // Render/Vercel chạy sau reverse proxy: cần trust proxy để req.protocol/IP đúng.
+  app.set('trust proxy', 1);
 
   // BUG-06 fix: giới hạn origin CORS thay vì mở tất cả (app.use(cors()))
   const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
-  app.use(cors({ origin: allowedOrigins, credentials: true }));
+  app.use(
+    cors({
+      origin(origin, callback) {
+        // Request không có Origin (curl, health check, server-to-server) luôn được phép.
+        if (!origin) return callback(null, true);
+        return callback(null, allowedOrigins.some(pattern => originMatches(origin, pattern)));
+      },
+      credentials: true
+    })
+  );
   app.use(express.json());
 
   // Middleware bảo mật và che thông tin nhạy cảm

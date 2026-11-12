@@ -28,6 +28,9 @@
   ],
   "author": "Nguyen Tran Hoang Vinh - 2374802010562",
   "license": "ISC",
+  "engines": {
+    "node": ">=20 <23"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",

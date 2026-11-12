@@ -8,6 +8,7 @@
 - **Học phần:** Chuyên đề tốt nghiệp 1 (HK261, 2026–2027) — Khoa CNTT, Đại học Văn Lang
 - **Tiến độ hiện tại:** Hoàn tất Giai đoạn 3 — **Bài tập 3** (Kiểm thử theo đặc tả, sửa lỗi, đóng gói Docker và tài liệu kỹ thuật; Release `v1.0`)
 - **Phiên bản release:** `v1.0` (Tag: `v1.0`)
+- **Triển khai cloud:** Render (API + PostgreSQL) + Vercel (Web UI) — hướng dẫn tại [`docs/trien-khai-cloud.md`](docs/trien-khai-cloud.md)
 
 ---
 
@@ -27,11 +28,31 @@ Sau khoảng 30–60 giây, mở **http://localhost:5173** và đăng nhập b�
 > Hướng dẫn đầy đủ (yêu cầu, biến môi trường, dữ liệu mẫu, kiểm chứng, xử lý sự cố):
 > [`docs/deployment-guide.md`](docs/deployment-guide.md).
 
+### Bản chạy online (Render + Vercel)
+
+Hệ thống có sẵn cấu hình triển khai cloud, không cần sửa mã nguồn:
+
+| Thành phần | Nền tảng | Cấu hình có sẵn |
+| :--- | :--- | :--- |
+| Frontend React/Vite | **Vercel** | `vercel.json`, `frontend/vercel.json` |
+| Backend Node/Express | **Render** | `render.yaml` |
+| PostgreSQL 16 | **Render** | `render.yaml` (tự inject `DATABASE_URL`) |
+
+- **Live Web UI:** `https://<vercel-project>.vercel.app` *(điền sau khi deploy)*
+- **Live API:** `https://mekong-crm-api.onrender.com` *(tên service lấy từ `render.yaml`)*
+- **Hướng dẫn bấm từng bước bằng tiếng Việt:** [`docs/trien-khai-cloud.md`](docs/trien-khai-cloud.md)
+- **Hướng dẫn tiếng Anh (dùng cho báo cáo BT3):** [`docs/deployment-guide.md`](docs/deployment-guide.md#8-cloud-deployment--render-api--postgresql-and-vercel-web-ui)
+
+Thứ tự deploy: **Render (API + DB) → Vercel (Web) → quay lại Render cập nhật
+`CORS_ORIGIN` bằng URL Vercel**. Chỉ cần thêm/cập nhật 3 giá trị:
+`VITE_API_BASE_URL` trên Vercel; `CORS_ORIGIN` và `FRONTEND_URL` trên Render.
+
 ### Tài liệu Bài tập 3
 
 | Tài liệu | Nội dung |
 | :--- | :--- |
-| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Hướng dẫn triển khai 5 mục + Troubleshooting + Monitoring & Alerts |
+| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Hướng dẫn triển khai 5 mục + Troubleshooting + Monitoring & Alerts + Cloud (Render/Vercel) |
+| [`docs/trien-khai-cloud.md`](docs/trien-khai-cloud.md) | Hướng dẫn deploy Render + Vercel bằng tiếng Việt, kèm nghiệm thu và xử lý sự cố |
 | [`docs/checklist-bao-mat.md`](docs/checklist-bao-mat.md) | Checklist bảo mật 7 mục, mỗi mục có lệnh minh chứng chạy thật |
 | [`docs/api-docs/README.md`](docs/api-docs/README.md) | Chỉ mục API Reference (17 endpoint nghiệp vụ) + OpenAPI 3.0 |
 | [`docs/test-plan.md`](docs/test-plan.md) | Kế hoạch kiểm thử theo đặc tả |
@@ -54,7 +75,7 @@ Hệ thống Smart CRM - Luồng L4 giải quyết trọn vẹn bài toán đi�
 - **Backend:** Node.js 20 LTS, Express, Prisma ORM 5. Kiến trúc tách rời nghiêm ngặt 3 tầng: `routes/` (HTTP & mapping mã lỗi) ↔ `services/` (chứa toàn bộ quy tắc nghiệp vụ, không phụ thuộc HTTP) ↔ `repositories/` (truy xuất CSDL).
 - **Cơ sở dữ liệu:** PostgreSQL 16 (Lược đồ 6 bảng chuẩn 3NF: `customer`, `device`, `service_center`, `issue_category`, `technician`, `ticket`). Lịch sử chuyển trạng thái lưu dưới dạng `status_history` (JSONB Document-in-Row).
 - **Kiểm thử tự động:** Jest, **52 unit & integration test cases** (7 test suite) bao phủ trọn vẹn 3 loại: Luồng đúng (Happy path), Giá trị biên (Boundary), Dữ liệu sai (Invalid data) — trong đó có **12 mã TC cốt lõi** của BT3 (`TC-01`…`TC-12`) và **3 test hồi quy** cho các lỗi phát hiện bằng phép thử máy trắng (`TC-13`…`TC-15`).
-- **Đóng gói & Triển khai:** Docker, `docker-compose.yml` (chạy toàn bộ backend + frontend + database bằng 1 lệnh).
+- **Đóng gói & Triển khai:** Docker, `docker-compose.yml` (chạy toàn bộ backend + frontend + database bằng 1 lệnh); cloud bằng **Render** (API + PostgreSQL) và **Vercel** (frontend), cấu hình sẵn trong `render.yaml` và `vercel.json`.
 
 ---
 
@@ -341,7 +362,8 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   ├── test-plan.md                  # Kế hoạch kiểm thử rút gọn (4 mục)
 │   ├── test-report.md                # Báo cáo 12 test case đủ 8 cột + Phụ lục E
 │   ├── bug-log.md                    # Bug Log đã sửa kèm link commit
-│   ├── deployment-guide.md           # Hướng dẫn triển khai bằng tiếng Anh (5 mục)
+│   ├── deployment-guide.md           # Hướng dẫn triển khai bằng tiếng Anh (5 mục + Cloud)
+│   ├── trien-khai-cloud.md           # Hướng dẫn deploy Render + Vercel bằng tiếng Việt
 │   ├── checklist-bao-mat.md          # Checklist bảo mật 7 mục kèm minh chứng
 │   ├── api-docs/                     # API Reference 17 endpoint + OpenAPI 3.0.3
 │   └── api-contract.md               # Hợp đồng API REST/JSON
@@ -377,6 +399,10 @@ Cdtn1-NguyenTranHoangVinh-L4/
 │   └── src/App.jsx                   # Điều phối giao diện, xác thực vai trò
 ├── Dockerfile                        # Đóng gói container hoàn chỉnh
 ├── docker-compose.yml                # Khởi động toàn hệ thống bằng 1 lệnh
+├── render.yaml                       # Blueprint Render: API + PostgreSQL + biến môi trường
+├── vercel.json                       # Cấu hình Vercel khi deploy từ thư mục gốc repo
+├── frontend/vercel.json              # Cấu hình Vercel khi Root Directory = frontend
+├── .nvmrc                            # Ghim Node.js 20 cho Render/CI
 ├── .env.example                      # Liệt kê đầy đủ mọi biến môi trường
 └── README.md
 ```
@@ -395,7 +421,7 @@ Cdtn1-NguyenTranHoangVinh-L4/
 - [x] **52 kịch bản kiểm thử PASS 100%** bằng lệnh `npm test` (7 test suite), gồm 12 mã TC cốt lõi BT3 + 3 test hồi quy cho lỗi phát hiện bằng phép thử máy trắng.
 - [x] Kế hoạch kiểm thử, báo cáo kiểm thử và Bug Log đầy đủ (`docs/test-plan.md`, `docs/test-report.md`, `docs/bug-log.md`).
 - [x] Phép thử máy trắng trên Docker Compose: `down -v` → `up -d --build` → 3 dịch vụ healthy → seed lần 2 không nhân đôi dữ liệu (6/6/8/4/4/4).
-- [x] Đóng gói tái lập được: `.dockerignore`, `npm ci`, chạy bằng `USER node`, healthcheck cho cả `api` và `web`, `.env.example` đủ 16 biến.
+- [x] Đóng gói tái lập được: `.dockerignore`, `npm ci`, chạy bằng `USER node`, healthcheck cho cả `api` và `web`, `.env.example` đủ 17 biến.
 - [x] Deployment Guide (5 mục bắt buộc + Troubleshooting + Monitoring) và Checklist bảo mật 7 mục có minh chứng chạy thật.
 - [x] API Reference 17 endpoint (7 mục/endpoint, ví dụ `curl` thật) + OpenAPI 3.0 + trang chỉ mục.
 - [x] Đồng bộ `api-contract.md` và `srs.md` với 17 endpoint thật; ghi nhận vào `docs/thay-doi-thiet-ke.md`.
@@ -404,3 +430,6 @@ Cdtn1-NguyenTranHoangVinh-L4/
 - [x] Xử lý đủ 3 trạng thái (đang tải, rỗng phân biệt, lỗi kết nối có nút thử lại).
 - [x] Che số điện thoại khách hàng `090****567` cho vai trò KTV (QT-15, NFR2).
 - [x] Đóng gói Dockerfile và `docker-compose.yml`.
+- [x] Cấu hình triển khai cloud: `render.yaml` (API + PostgreSQL), `vercel.json` + `frontend/vercel.json` (Web UI), ghim Node 20 bằng `.nvmrc`.
+- [x] Hướng dẫn cloud tiếng Việt (`docs/trien-khai-cloud.md`) và tiếng Anh (`docs/deployment-guide.md` mục 8), kèm bảng nghiệm thu + xử lý sự cố.
+- [ ] **Điền URL live** sau khi deploy: Web UI Vercel + API Render (mục "Bản chạy online" ở đầu README) và chụp ảnh minh chứng cho báo cáo BT3.

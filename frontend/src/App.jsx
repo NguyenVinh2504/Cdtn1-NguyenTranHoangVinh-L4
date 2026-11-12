@@ -4,20 +4,17 @@ import { TicketListPage } from './pages/TicketListPage';
 import { AssignTechnicianModal } from './pages/AssignTechnicianModal';
 import { TechnicianTicketsPage } from './pages/TechnicianTicketsPage';
 import { LoginPage } from './pages/LoginPage';
+import { loginApi } from './api/auth.api';
 
 export default function App() {
+  // Khởi tạo từ localStorage; nếu chưa đăng nhập thì hiện LoginPage.
+  // Trên bản cloud, backend đặt ALLOW_DEV_AUTH_HEADERS=false nên bắt buộc có JWT thật.
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('mekong_user');
     if (saved) {
       try { return JSON.parse(saved); } catch (e) {}
     }
-    // Mặc định tài khoản Quản lý TT2
-    return {
-      id: 1,
-      fullName: 'Trần Văn Quản Lý (TT2)',
-      role: 'CENTER_MANAGER',
-      centerId: 2
-    };
+    return null;
   });
 
   const [activeTab, setActiveTab] = useState('unassigned');
@@ -44,27 +41,23 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  const handleSwitchRole = () => {
-    if (currentUser?.role === 'CENTER_MANAGER') {
-      const ktvUser = {
-        id: 3,
-        fullName: 'Nguyễn Văn A (KTV)',
-        role: 'TECHNICIAN',
-        centerId: 2
-      };
-      setCurrentUser(ktvUser);
-      localStorage.setItem('mekong_user', JSON.stringify(ktvUser));
-      setActiveTab('technician');
-    } else {
-      const managerUser = {
-        id: 1,
-        fullName: 'Trần Văn Quản Lý (TT2)',
-        role: 'CENTER_MANAGER',
-        centerId: 2
-      };
-      setCurrentUser(managerUser);
-      localStorage.setItem('mekong_user', JSON.stringify(managerUser));
-      setActiveTab('unassigned');
+  // Đổi vai trò bằng cách đăng nhập thật với tài khoản demo tương ứng,
+  // để trình duyệt luôn có JWT hợp lệ (không mạo danh bằng header dev).
+  const handleSwitchRole = async () => {
+    const target =
+      currentUser?.role === 'CENTER_MANAGER'
+        ? { username: 'ktv_nguyenvana', tab: 'technician' }
+        : { username: 'manager_tt2', tab: 'unassigned' };
+
+    try {
+      const data = await loginApi(target.username, 'password123');
+      localStorage.setItem('mekong_token', data.token);
+      localStorage.setItem('mekong_user', JSON.stringify(data.user));
+      setCurrentUser(data.user);
+      setActiveTab(target.tab);
+    } catch (err) {
+      // Không đổi được vai trò (mất mạng/API lỗi) thì đưa về màn hình đăng nhập.
+      handleLogout();
     }
   };
 
